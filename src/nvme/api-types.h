@@ -20,6 +20,8 @@
 
 struct nvme_root;
 typedef struct nvme_root *nvme_root_t;
+struct nvme_link;
+typedef struct nvme_link *nvme_link_t;
 
 /**
  * nvme_create_root() - Initialize root object
