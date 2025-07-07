@@ -13,7 +13,7 @@
 
 %allowexception;
 
-%rename(root)      nvme_root;
+%rename(global_ctx)      nvme_global_ctx;
 %rename(host)      nvme_host;
 %rename(ctrl)      nvme_ctrl;
 %rename(subsystem) nvme_subsystem;
@@ -59,7 +59,7 @@ PyObject *hostid_from_file();
 
 %inline %{
 	struct host_iter {
-		struct nvme_root *root;
+		struct nvme_global_ctx *ctx;
 		struct nvme_host *pos;
 	};
 
@@ -324,7 +324,7 @@ PyObject *hostid_from_file();
 #include "fabrics.h"
 #define STR_OR_NONE(str) (!(str) ? "None" : str)
 
-struct nvme_root {
+struct nvme_global_ctx {
 	%immutable config_file;
 	%immutable application;
 	char *config_file;
@@ -446,12 +446,12 @@ struct nvme_ns {
 	uint8_t uuid[16];
 };
 
-%extend nvme_root {
-	nvme_root(const char *config_file = NULL) {
+%extend nvme_global_ctx {
+	nvme_global_ctx(const char *config_file = NULL) {
 		return nvme_scan(config_file);
 	}
-	~nvme_root() {
-		nvme_free_tree($self);
+	~nvme_global_ctx() {
+		nvme_free_global_ctx($self);
 	}
 	void log_level(const char *level) {
 		int log_level = DEFAULT_LOGLEVEL;
@@ -490,7 +490,7 @@ struct nvme_ns {
 			host_iter_err = 1;
 			return NULL;
 		}
-		$self->pos = nvme_next_host($self->root, this);
+		$self->pos = nvme_next_host($self->ctx, this);
 		return this;
 	}
 }
@@ -504,19 +504,19 @@ struct nvme_ns {
 @return: None"
 %enddef
 
-%pythonappend nvme_host::nvme_host(struct nvme_root *r,
+%pythonappend nvme_host::nvme_host(struct nvme_global_ctx *ctx,
 				   const char *hostnqn,
 				   const char *hostid,
 				   const char *hostkey,
 				   const char *hostsymname) {
-	self.__parent = r  # Keep a reference to parent to ensure garbage collection happens in the right order}
+	self.__parent = ctx  # Keep a reference to parent to ensure garbage collection happens in the right order}
 %extend nvme_host {
-	nvme_host(struct nvme_root *r,
+	nvme_host(struct nvme_global_ctx *ctx,
 		  const char *hostnqn = NULL,
 		  const char *hostid = NULL,
 		  const char *hostkey = NULL,
 		  const char *hostsymname = NULL) {
-		nvme_host_t h = hostnqn ? nvme_lookup_host(r, hostnqn, hostid) : nvme_default_host(r);
+		nvme_host_t h = hostnqn ? nvme_lookup_host(ctx, hostnqn, hostid) : nvme_default_host(ctx);
 		if (hostsymname)
 			nvme_host_set_hostsymname(h, hostsymname);
 		if (hostkey)
@@ -536,7 +536,7 @@ struct nvme_ns {
 	}
 	struct host_iter __iter__() {
 		struct host_iter ret = {
-			.root = nvme_host_get_root($self),
+			.ctx = nvme_host_get_global_ctx($self),
 			.pos = $self
 		};
 		return ret;
@@ -656,14 +656,14 @@ struct nvme_ns {
 %pythonappend nvme_ctrl::init(struct nvme_host *h, int instance) {
     self.__host = h  # Keep a reference to parent to ensure ctrl obj gets GCed before host}
 %extend nvme_ctrl {
-	nvme_ctrl(struct nvme_root *r,
+	nvme_ctrl(struct nvme_global_ctx *ctx,
 		  const char *subsysnqn,
 		  const char *transport,
 		  const char *traddr = NULL,
 		  const char *host_traddr = NULL,
 		  const char *host_iface = NULL,
 		  const char *trsvcid = NULL) {
-		return nvme_create_ctrl(r, subsysnqn, transport, traddr,
+		return nvme_create_ctrl(ctx, subsysnqn, transport, traddr,
 					host_traddr, host_iface, trsvcid);
 	}
 	~nvme_ctrl() {
