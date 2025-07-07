@@ -461,7 +461,7 @@ void nvme_refresh_topology(nvme_root_t r)
 	nvme_scan_topology(r, NULL, NULL);
 }
 
-void nvme_free_tree(nvme_root_t r)
+void nvme_free_root(nvme_root_t r)
 {
 	struct nvme_host *h, *_h;
 
