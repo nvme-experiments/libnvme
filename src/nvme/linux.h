@@ -192,7 +192,7 @@ int nvme_namespace_detach_ctrls(nvme_link_t l, __u32 nsid, __u16 num_ctrls, __u1
  * Return: A link handle for the device on a successful open, or -1 with
  * errno set otherwise.
  */
-nvme_link_t nvme_open(nvme_root_t r, const char *name);
+int nvme_open(nvme_root_t r, const char *name, nvme_link_t *l);
 
 /**
  * nvme_close() - Close link handle
@@ -289,7 +289,7 @@ int nvme_gen_dhchap_key(char *hostnqn, enum nvme_hmac_alg hmac,
  * Return: The key serial number of the keyring
  * or 0 with errno set otherwise.
  */
-long nvme_lookup_keyring(const char *keyring);
+int nvme_lookup_keyring(const char *keyring, long *key);
 
 /**
  * nvme_describe_key_serial() - Return key description
@@ -314,7 +314,7 @@ char *nvme_describe_key_serial(long key_id);
  * Return: The key serial number of the key
  * or 0 with errno set otherwise.
  */
-long nvme_lookup_key(const char *type, const char *identity);
+int nvme_lookup_key(const char *type, const char *identity, long *key);
 
 /**
  * nvme_set_keyring() - Link keyring for lookup
@@ -342,7 +342,8 @@ int nvme_set_keyring(long keyring_id);
  * Return: Pointer to the payload on success,
  * or NULL with errno set otherwise.
  */
-unsigned char *nvme_read_key(long keyring_id, long key_id, int *len);
+int nvme_read_key(long keyring_id, long key_id, int *len,
+		  unsigned char **key);
 
 /**
  * nvme_update_key() - Update key raw data
@@ -359,9 +360,9 @@ unsigned char *nvme_read_key(long keyring_id, long key_id, int *len);
  *
  * Return: Key id of the new key or 0 with errno set otherwise.
  */
-long nvme_update_key(long keyring_id, const char *key_type,
-		     const char *identity, unsigned char *key_data,
-		     int key_len);
+int nvme_update_key(long keyring_id, const char *key_type,
+		    const char *identity, unsigned char *key_data,
+		    int key_len, long *key);
 
 /**
  * typedef nvme_scan_tls_keys_cb_t - Callback for iterating TLS keys
@@ -410,9 +411,9 @@ int nvme_scan_tls_keys(const char *keyring, nvme_scan_tls_keys_cb_t cb,
  * Return: The key serial number if the key could be inserted into
  * the keyring or 0 with errno otherwise.
  */
-long nvme_insert_tls_key(const char *keyring, const char *key_type,
+int nvme_insert_tls_key(const char *keyring, const char *key_type,
 			 const char *hostnqn, const char *subsysnqn, int hmac,
-			 unsigned char *configured_key, int key_len);
+			 unsigned char *configured_key, int key_len, long *key);
 
 /**
  * nvme_insert_tls_key_versioned() - Derive and insert TLS key
@@ -432,10 +433,11 @@ long nvme_insert_tls_key(const char *keyring, const char *key_type,
  * Return: The key serial number if the key could be inserted into
  * the keyring or 0 with errno otherwise.
  */
-long nvme_insert_tls_key_versioned(const char *keyring, const char *key_type,
-				   const char *hostnqn, const char *subsysnqn,
-				   int version, int hmac,
-				   unsigned char *configured_key, int key_len);
+int nvme_insert_tls_key_versioned(const char *keyring, const char *key_type,
+				  const char *hostnqn, const char *subsysnqn,
+				  int version, int hmac,
+				  unsigned char *configured_key, int key_len,
+				  long *key);
 
 /**
  * nvme_generate_tls_key_identity() - Generate the TLS key identity
@@ -452,9 +454,10 @@ long nvme_insert_tls_key_versioned(const char *keyring, const char *key_type,
  * Return: The string containing the TLS identity. It is the responsibility
  * of the caller to free the returned string.
  */
-char *nvme_generate_tls_key_identity(const char *hostnqn, const char *subsysnqn,
-				     int version, int hmac,
-				     unsigned char *configured_key, int key_len);
+int nvme_generate_tls_key_identity(const char *hostnqn, const char *subsysnqn,
+				   int version, int hmac,
+				   unsigned char *configured_key, int key_len,
+				   char **identity);
 
 /**
  * nvme_revoke_tls_key() - Revoke TLS key from keyring
@@ -464,8 +467,8 @@ char *nvme_generate_tls_key_identity(const char *hostnqn, const char *subsysnqn,
  *
  * Return: 0 on success or on failure -1 with errno set.
  */
-long nvme_revoke_tls_key(const char *keyring, const char *key_type,
-			 const char *identity);
+int nvme_revoke_tls_key(const char *keyring, const char *key_type,
+			const char *identity);
 
 /**
  * nvme_export_tls_key() - Export a TLS key
@@ -479,7 +482,7 @@ long nvme_revoke_tls_key(const char *keyring, const char *key_type,
  * on error. It is the responsibility of the caller to free the returned
  * string.
  */
-char *nvme_export_tls_key(const unsigned char *key_data, int key_len);
+int nvme_export_tls_key(const unsigned char *key_data, int key_len, char **identity);
 
 /**
  * nvme_export_tls_key_versioned() - Export a TLS pre-shared key
@@ -496,9 +499,9 @@ char *nvme_export_tls_key(const unsigned char *key_data, int key_len);
  * on error. It is the responsibility of the caller to free the returned
  * string.
  */
-char *nvme_export_tls_key_versioned(unsigned char version, unsigned char hmac,
-				    const unsigned char *key_data,
-				    size_t key_len);
+int nvme_export_tls_key_versioned(unsigned char version, unsigned char hmac,
+				  const unsigned char *key_data,
+				  size_t key_len, char **identity);
 
 /**
  * nvme_import_tls_key() - Import a TLS key
@@ -512,8 +515,8 @@ char *nvme_export_tls_key_versioned(unsigned char version, unsigned char hmac,
  * Return: The raw data of the PSK or NULL with errno set on error. It is
  * the responsibility of the caller to free the returned string.
  */
-unsigned char *nvme_import_tls_key(const char *encoded_key, int *key_len,
-				   unsigned int *hmac);
+int nvme_import_tls_key(const char *encoded_key, int *key_len,
+			unsigned int *hmac, unsigned char **key);
 
 /**
  * nvme_import_tls_key_versioned() - Import a TLS key
@@ -529,10 +532,11 @@ unsigned char *nvme_import_tls_key(const char *encoded_key, int *key_len,
  * Return: The raw data of the PSK or NULL with errno set on error. It is
  * the responsibility of the caller to free the returned string.
  */
-unsigned char *nvme_import_tls_key_versioned(const char *encoded_key,
-					     unsigned char *version,
-					     unsigned char *hmac,
-					     size_t *key_len);
+int nvme_import_tls_key_versioned(const char *encoded_key,
+				  unsigned char *version,
+				  unsigned char *hmac,
+				  size_t *key_len,
+				  unsigned char **key);
 /**
  * nvme_submit_passthru - Low level ioctl wrapper for passthru commands
  * @l:		Link handle

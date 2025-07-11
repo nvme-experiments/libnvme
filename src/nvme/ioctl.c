@@ -37,12 +37,10 @@ static int nvme_verify_chr(nvme_link_t l)
 	int err = fstat(l->fd, &nvme_stat);
 
 	if (err < 0)
-		return errno;
+		return -errno;
 
-	if (!S_ISCHR(nvme_stat.st_mode)) {
-		errno = ENOTBLK;
-		return -1;
-	}
+	if (!S_ISCHR(nvme_stat.st_mode))
+		return -ENOTBLK;
 	return 0;
 }
 
@@ -53,7 +51,10 @@ int nvme_subsystem_reset(nvme_link_t l)
 	ret = nvme_verify_chr(l);
 	if (ret)
 		return ret;
-	return ioctl(l->fd, NVME_IOCTL_SUBSYS_RESET);
+	ret = ioctl(l->fd, NVME_IOCTL_SUBSYS_RESET);
+	if (ret < 0)
+		return -errno;
+	return ret;
 }
 
 int nvme_ctrl_reset(nvme_link_t l)
@@ -63,7 +64,10 @@ int nvme_ctrl_reset(nvme_link_t l)
 	ret = nvme_verify_chr(l);
 	if (ret)
 		return ret;
-	return ioctl(l->fd, NVME_IOCTL_RESET);
+	ret = ioctl(l->fd, NVME_IOCTL_RESET);
+	if (ret < 0)
+		return -errno;
+	return ret;
 }
 
 int nvme_ns_rescan(nvme_link_t l)
@@ -73,14 +77,19 @@ int nvme_ns_rescan(nvme_link_t l)
 	ret = nvme_verify_chr(l);
 	if (ret)
 		return ret;
-	return ioctl(l->fd, NVME_IOCTL_RESCAN);
+	ret = ioctl(l->fd, NVME_IOCTL_RESCAN);
+	if (ret < 0)
+		return -errno;
+	return ret;
 }
 
 int nvme_get_nsid(nvme_link_t l, __u32 *nsid)
 {
 	errno = 0;
 	*nsid = ioctl(l->fd, NVME_IOCTL_ID);
-	return -1 * (errno != 0);
+	if (errno)
+		return -errno;
+	return 0;
 }
 
 __attribute__((weak))
@@ -92,6 +101,8 @@ int nvme_submit_passthru64(nvme_link_t l, unsigned long ioctl_cmd,
 
 	if (err >= 0 && result)
 		*result = cmd->result;
+	if (err < 0)
+		return -errno;
 	return err;
 }
 
@@ -103,6 +114,8 @@ int nvme_submit_passthru(nvme_link_t l, unsigned long ioctl_cmd,
 
 	if (err >= 0 && result)
 		*result = cmd->result;
+	if (err < 0)
+		return -errno;
 	return err;
 }
 
@@ -197,8 +210,7 @@ int nvme_submit_admin_passthru(nvme_link_t l, struct nvme_passthru_cmd *cmd, __u
 			cmd->cdw14, cmd->cdw15, cmd->data_len, (void*)cmd->addr, cmd->metadata_len,
 			(void*)cmd->metadata, cmd->timeout_ms, result);
 	default:
-		errno = ENOTSUP;
-		return -1;
+		return -ENOTSUP;
        }
 }
 
@@ -289,10 +301,9 @@ int nvme_identify(nvme_link_t l, struct nvme_identify_args *args)
 		.timeout_ms	= args->timeout,
 	};
 
-	if (args->args_size < sizeof(*args)) {
-		errno = EINVAL;
-		return -1;
-	}
+	if (args->args_size < sizeof(*args))
+		return -EINVAL;
+
 	return nvme_submit_admin_passthru(l, &cmd, args->result);
 }
 
@@ -326,10 +337,9 @@ int nvme_get_log(nvme_link_t l, struct nvme_get_log_args *args)
 		.timeout_ms	= args->timeout,
 	};
 
-	if (args->args_size < sizeof(struct nvme_get_log_args)) {
-		errno = EINVAL;
-		return -1;
-	}
+	if (args->args_size < sizeof(struct nvme_get_log_args))
+		return -EINVAL;
+
 	return nvme_submit_admin_passthru(l, &cmd, args->result);
 }
 
@@ -359,8 +369,10 @@ static void nvme_uring_cmd_probe()
 
 static int nvme_uring_cmd_setup(struct io_uring *ring)
 {
-	return io_uring_queue_init(NVME_URING_ENTRIES, ring,
-				   IORING_SETUP_SQE128 | IORING_SETUP_CQE32);
+	if (io_uring_queue_init(NVME_URING_ENTRIES, ring,
+				   IORING_SETUP_SQE128 | IORING_SETUP_CQE32))
+		return -errno;
+	return 0;
 }
 
 static void nvme_uring_cmd_exit(struct io_uring *ring)
@@ -390,10 +402,8 @@ static int nvme_uring_cmd_admin_passthru_async(nvme_link_t l, struct io_uring *r
 			NVME_SET(!!args->ot, LOG_CDW14_OT) |
 			NVME_SET(args->csi, LOG_CDW14_CSI);
 
-	if (args->args_size < sizeof(struct nvme_get_log_args)) {
-		errno = EINVAL;
-		return -1;
-	}
+	if (args->args_size < sizeof(struct nvme_get_log_args))
+		return -EINVAL;
 
 	sqe = io_uring_get_sqe(ring);
 	if (!sqe)
@@ -417,10 +427,8 @@ static int nvme_uring_cmd_admin_passthru_async(nvme_link_t l, struct io_uring *r
 	sqe->user_data = (__u64)(uintptr_t)args;
 
 	ret = io_uring_submit(ring);
-	if (ret < 0) {
-		errno = -ret;
-		return -1;
-	}
+	if (ret < 0)
+		return -errno;
 
 	return 0;
 }
@@ -433,10 +441,8 @@ static int nvme_uring_cmd_wait_complete(struct io_uring *ring, int n)
 
 	for (i = 0; i < n; i++) {
 		ret = io_uring_wait_cqe(ring, &cqe);
-		if (ret) {
-			errno = -ret;
+		if (ret)
 			return -1;
-		}
 
 		if (cqe->res) {
 			args = (struct nvme_get_log_args *)cqe->user_data;
@@ -471,8 +477,9 @@ int nvme_get_log_page(nvme_link_t l, __u32 xfer_len, struct nvme_get_log_args *a
 		if (fstat(l->fd, &st) == 0 && S_ISCHR(st.st_mode)) {
 			use_uring = true;
 
-			if (nvme_uring_cmd_setup(&ring))
-				return -1;
+			ret = nvme_uring_cmd_setup(&ring);
+			if (ret)
+				return ret;
 		}
 	}
 #endif
@@ -529,10 +536,8 @@ int nvme_get_log_page(nvme_link_t l, __u32 xfer_len, struct nvme_get_log_args *a
 static int read_ana_chunk(nvme_link_t l, enum nvme_log_ana_lsp lsp, bool rae,
 			  __u8 *log, __u8 **read, __u8 *to_read, __u8 *log_end)
 {
-	if (to_read > log_end) {
-		errno = ENOSPC;
-		return -1;
-	}
+	if (to_read > log_end)
+		return -ENOSPC;
 
 	while (*read < to_read) {
 		__u32 len = min_t(__u32, log_end - *read, NVME_LOG_PAGE_PDU_SIZE);
@@ -568,7 +573,7 @@ static int try_read_ana(nvme_link_t l, enum nvme_log_ana_lsp lsp, bool rae,
 			 * and the computed length was inaccurate.
 			 * Have the caller check chgcnt and retry.
 			 */
-			*may_retry = errno == ENOSPC;
+			*may_retry = ret == -ENOSPC;
 			return ret;
 		}
 
@@ -584,7 +589,7 @@ static int try_read_ana(nvme_link_t l, enum nvme_log_ana_lsp lsp, bool rae,
 		ret = read_ana_chunk(l, lsp, rae,
 				     (__u8 *)log, &read, *to_read, log_end);
 		if (ret) {
-			*may_retry = errno == ENOSPC;
+			*may_retry = ret == -ENOSPC;
 			return ret;
 		}
 	}
@@ -604,10 +609,8 @@ int nvme_get_ana_log_atomic(nvme_link_t l, bool rgo, bool rae, unsigned int retr
 	__u8 *to_read;
 	int ret;
 
-	if (!retries) {
-		errno = EINVAL;
-		return -1;
-	}
+	if (!retries)
+		return -EINVAL;
 
 	to_read = (__u8 *)log->descs;
 	ret = read_ana_chunk(l, lsp, rae,
@@ -647,8 +650,7 @@ int nvme_get_ana_log_atomic(nvme_link_t l, bool rgo, bool rae, unsigned int retr
 		}
 	} while (--retries);
 
-	errno = EAGAIN;
-	return -1;
+	return -EAGAIN;
 }
 
 int nvme_set_features(nvme_link_t l, struct nvme_set_features_args *args)
@@ -670,10 +672,9 @@ int nvme_set_features(nvme_link_t l, struct nvme_set_features_args *args)
 		.cdw15		= args->cdw15,
 		.timeout_ms	= args->timeout,
 	};
-	if (args->args_size < sizeof(*args)) {
-		errno = EINVAL;
-		return -1;
-	}
+	if (args->args_size < sizeof(*args))
+		return -EINVAL;
+
 	return nvme_submit_admin_passthru(l, &cmd, args->result);
 }
 
@@ -988,10 +989,9 @@ int nvme_get_features(nvme_link_t l, struct nvme_get_features_args *args)
 		.timeout_ms	= args->timeout,
 	};
 
-	if (args->args_size < sizeof(*args)) {
-		errno = EINVAL;
-		return -1;
-	}
+	if (args->args_size < sizeof(*args))
+		return -EINVAL;
+
 	return nvme_submit_admin_passthru(l, &cmd, args->result);
 }
 
@@ -1389,10 +1389,8 @@ int nvme_format_nvm(nvme_link_t l, struct nvme_format_nvm_args *args)
 	const size_t size_v2 = sizeof_args(struct nvme_format_nvm_args, lbafu, __u64);
 	__u32 cdw10;
 
-	if (args->args_size < size_v1 || args->args_size > size_v2) {
-		errno = EINVAL;
-		return -1;
-	}
+	if (args->args_size < size_v1 || args->args_size > size_v2)
+		return -EINVAL;
 
 	cdw10 = NVME_SET(args->lbaf, FORMAT_CDW10_LBAF) |
 		NVME_SET(args->mset, FORMAT_CDW10_MSET) |
@@ -1422,10 +1420,8 @@ int nvme_ns_mgmt(nvme_link_t l, struct nvme_ns_mgmt_args *args)
 	__u32 cdw10    = NVME_SET(args->sel, NAMESPACE_MGMT_CDW10_SEL);
 	__u32 cdw11    = NVME_SET(args->csi, NAMESPACE_MGMT_CDW11_CSI);
 
-	if (args->args_size < size_v1 || args->args_size > size_v2) {
-		errno = EINVAL;
-		return -1;
-	}
+	if (args->args_size < size_v1 || args->args_size > size_v2)
+		return -EINVAL;
 
 	struct nvme_passthru_cmd cmd = {
 		.nsid	    = args->nsid,
@@ -1463,10 +1459,9 @@ int nvme_ns_attach(nvme_link_t l, struct nvme_ns_attach_args *args)
 		.timeout_ms	= args->timeout,
 	};
 
-	if (args->args_size < sizeof(*args)) {
-		errno = EINVAL;
-		return -1;
-	}
+	if (args->args_size < sizeof(*args))
+		return -EINVAL;
+
 	return nvme_submit_admin_passthru(l, &cmd, args->result);
 }
 
@@ -1484,20 +1479,14 @@ int nvme_fw_download(nvme_link_t l, struct nvme_fw_download_args *args)
 		.timeout_ms	= args->timeout,
 	};
 
-	if (args->args_size < sizeof(*args)) {
-		errno = EINVAL;
-		return -1;
-	}
+	if (args->args_size < sizeof(*args))
+		return -EINVAL;
 
-	if ((args->data_len & 0x3) || (!args->data_len)) {
-		errno = EINVAL;
-		return -1;
-	}
+	if ((args->data_len & 0x3) || (!args->data_len))
+		return -EINVAL;
 
-	if (args->offset & 0x3) {
-		errno = EINVAL;
-		return -1;
-	}
+	if (args->offset & 0x3)
+		return -EINVAL;
 
 	return nvme_submit_admin_passthru(l, &cmd, args->result);
 }
@@ -1514,10 +1503,9 @@ int nvme_fw_commit(nvme_link_t l, struct nvme_fw_commit_args *args)
 		.timeout_ms	= args->timeout,
 	};
 
-	if (args->args_size < sizeof(*args)) {
-		errno = EINVAL;
-		return -1;
-	}
+	if (args->args_size < sizeof(*args))
+		return -EINVAL;
+
 	return nvme_submit_admin_passthru(l, &cmd, args->result);
 }
 
@@ -1539,10 +1527,9 @@ int nvme_security_send(nvme_link_t l, struct nvme_security_send_args *args)
 		.timeout_ms	= args->timeout,
 	};
 
-	if (args->args_size < sizeof(*args)) {
-		errno = EINVAL;
-		return -1;
-	}
+	if (args->args_size < sizeof(*args))
+		return -EINVAL;
+
 	return nvme_submit_admin_passthru(l, &cmd, args->result);
 }
 
@@ -1564,10 +1551,9 @@ int nvme_security_receive(nvme_link_t l, struct nvme_security_receive_args *args
 		.timeout_ms	= args->timeout,
 	};
 
-	if (args->args_size < sizeof(*args)) {
-		errno = EINVAL;
-		return -1;
-	}
+	if (args->args_size < sizeof(*args))
+		return -EINVAL;
+
 	return nvme_submit_admin_passthru(l, &cmd, args->result);
 }
 
@@ -1591,10 +1577,9 @@ int nvme_get_lba_status(nvme_link_t l, struct nvme_get_lba_status_args *args)
 		.timeout_ms = args->timeout,
 	};
 
-	if (args->args_size < sizeof(*args)) {
-		errno = EINVAL;
-		return -1;
-	}
+	if (args->args_size < sizeof(*args))
+		return -EINVAL;
+
 	return nvme_submit_admin_passthru(l, &cmd, args->result);
 }
 
@@ -1616,11 +1601,10 @@ int nvme_directive_send(nvme_link_t l, struct nvme_directive_send_args *args)
 		.timeout_ms	= args->timeout,
         };
 
-	if (args->args_size < sizeof(*args)) {
-		errno = EINVAL;
-		return -1;
-	}
-        return nvme_submit_admin_passthru(l, &cmd, args->result);
+	if (args->args_size < sizeof(*args))
+		return -EINVAL;
+
+	return nvme_submit_admin_passthru(l, &cmd, args->result);
 }
 
 int nvme_directive_send_id_endir(nvme_link_t l, __u32 nsid, bool endir,
@@ -1663,10 +1647,9 @@ int nvme_directive_recv(nvme_link_t l, struct nvme_directive_recv_args *args)
 		.timeout_ms	= args->timeout,
         };
 
-	if (args->args_size < sizeof(*args)) {
-		errno = EINVAL;
-		return -1;
-	}
+	if (args->args_size < sizeof(*args))
+		return -EINVAL;
+
 	return nvme_submit_admin_passthru(l, &cmd, args->result);
 }
 
@@ -1682,10 +1665,9 @@ int nvme_capacity_mgmt(nvme_link_t l, struct nvme_capacity_mgmt_args *args)
 		.timeout_ms	= args->timeout,
 	};
 
-	if (args->args_size < sizeof(*args)) {
-		errno = EINVAL;
-		return -1;
-	}
+	if (args->args_size < sizeof(*args))
+		return -EINVAL;
+
 	return nvme_submit_admin_passthru(l, &cmd, args->result);
 }
 
@@ -1703,10 +1685,9 @@ int nvme_lockdown(nvme_link_t l, struct nvme_lockdown_args *args)
 		.timeout_ms	= args->timeout,
 	};
 
-	if (args->args_size < sizeof(*args)) {
-		errno = EINVAL;
-		return -1;
-	}
+	if (args->args_size < sizeof(*args))
+		return -EINVAL;
+
 	return nvme_submit_admin_passthru(l, &cmd, args->result);
 }
 
@@ -1724,10 +1705,9 @@ int nvme_set_property(nvme_link_t l, struct nvme_set_property_args *args)
 		.timeout_ms	= args->timeout,
 	};
 
-	if (args->args_size < sizeof(*args)) {
-		errno = EINVAL;
-		return -1;
-	}
+	if (args->args_size < sizeof(*args))
+		return -EINVAL;
+
 	return nvme_submit_admin_passthru(l, &cmd, args->result);
 }
 
@@ -1743,10 +1723,9 @@ int nvme_get_property(nvme_link_t l, struct nvme_get_property_args *args)
 		.timeout_ms	= args->timeout,
 	};
 
-	if (args->args_size < sizeof(*args)) {
-		errno = EINVAL;
-		return -1;
-	}
+	if (args->args_size < sizeof(*args))
+		return -EINVAL;
+
 	return nvme_submit_admin_passthru64(l, &cmd, args->value);
 }
 
@@ -1756,10 +1735,8 @@ int nvme_sanitize_nvm(nvme_link_t l, struct nvme_sanitize_nvm_args *args)
 	const size_t size_v2 = sizeof_args(struct nvme_sanitize_nvm_args, emvs, __u64);
 	__u32 cdw10, cdw11;
 
-	if (args->args_size < size_v1 || args->args_size > size_v2) {
-		errno = EINVAL;
-		return -1;
-	}
+	if (args->args_size < size_v1 || args->args_size > size_v2)
+		return -EINVAL;
 
 	cdw10 = NVME_SET(args->sanact, SANITIZE_CDW10_SANACT) |
 		NVME_SET(!!args->ause, SANITIZE_CDW10_AUSE) |
@@ -1793,10 +1770,9 @@ int nvme_dev_self_test(nvme_link_t l, struct nvme_dev_self_test_args *args)
 		.timeout_ms	= args->timeout,
 	};
 
-	if (args->args_size < sizeof(*args)) {
-		errno = EINVAL;
-		return -1;
-	}
+	if (args->args_size < sizeof(*args))
+		return -EINVAL;
+
 	return nvme_submit_admin_passthru(l, &cmd, args->result);
 }
 
@@ -1814,10 +1790,9 @@ int nvme_virtual_mgmt(nvme_link_t l, struct nvme_virtual_mgmt_args *args)
 		.timeout_ms	= args->timeout,
 	};
 
-	if (args->args_size < sizeof(*args)) {
-		errno = EINVAL;
-		return -1;
-	}
+	if (args->args_size < sizeof(*args))
+		return -EINVAL;
+
 	return nvme_submit_admin_passthru(l, &cmd, args->result);
 }
 
@@ -1887,8 +1862,7 @@ static int nvme_set_var_size_tags(__u32 *cmd_dw2, __u32 *cmd_dw3, __u32 *cmd_dw1
 		break;
 	default:
 		perror("Unsupported Protection Information Format");
-		errno = EINVAL;
-		return -1;
+		return -EINVAL;
 	}
 
 	*cmd_dw2 = cdw2;
@@ -1903,10 +1877,8 @@ int nvme_io(nvme_link_t l, struct nvme_io_args *args, __u8 opcode)
 	const size_t size_v2 = sizeof_args(struct nvme_io_args, pif, __u64);
 	__u32 cdw2, cdw3, cdw10, cdw11, cdw12, cdw13, cdw14, cdw15;
 
-	if (args->args_size < size_v1 || args->args_size > size_v2) {
-		errno = EINVAL;
-		return -1;
-	}
+	if (args->args_size < size_v1 || args->args_size > size_v2)
+		return -EINVAL;
 
 	cdw10 = args->slba & 0xffffffff;
 	cdw11 = args->slba >> 32;
@@ -1923,10 +1895,8 @@ int nvme_io(nvme_link_t l, struct nvme_io_args *args, __u8 opcode)
 				args->pif,
 				args->sts,
 				args->reftag_u64,
-				args->storage_tag)) {
-			errno = EINVAL;
-			return -1;
-		}
+				args->storage_tag))
+			return -EINVAL;
 	}
 
 	struct nvme_passthru_cmd cmd = {
@@ -1962,10 +1932,9 @@ int nvme_dsm(nvme_link_t l, struct nvme_dsm_args *args)
 		.timeout_ms	= args->timeout,
 	};
 
-	if (args->args_size < sizeof(*args)) {
-		errno = EINVAL;
-		return -1;
-	}
+	if (args->args_size < sizeof(*args))
+		return -EINVAL;
+
 	return nvme_submit_io_passthru(l, &cmd, args->result);
 }
 
@@ -1975,10 +1944,8 @@ int nvme_copy(nvme_link_t l, struct nvme_copy_args *args)
 	const size_t size_v2 = sizeof_args(struct nvme_copy_args, ilbrt_u64, __u64);
 	__u32 cdw3, cdw12, cdw14, data_len;
 
-	if (args->args_size < size_v1 || args->args_size > size_v2) {
-		errno = EINVAL;
-		return -1;
-	}
+	if (args->args_size < size_v1 || args->args_size > size_v2)
+		return -EINVAL;
 
 	cdw12 = ((args->nr - 1) & 0xff) | ((args->format & 0xf) <<  8) |
 		((args->prinfor & 0xf) << 12) | ((args->dtype & 0xf) << 20) |
@@ -2039,10 +2006,9 @@ int nvme_resv_acquire(nvme_link_t l, struct nvme_resv_acquire_args *args)
 		.timeout_ms	= args->timeout,
 	};
 
-	if (args->args_size < sizeof(*args)) {
-		errno = EINVAL;
-		return -1;
-	}
+	if (args->args_size < sizeof(*args))
+		return -EINVAL;
+
 	return nvme_submit_io_passthru(l, &cmd, args->result);
 }
 
@@ -2065,10 +2031,9 @@ int nvme_resv_register(nvme_link_t l, struct nvme_resv_register_args *args)
 		.timeout_ms	= args->timeout,
 	};
 
-	if (args->args_size < sizeof(*args)) {
-		errno = EINVAL;
-		return -1;
-	}
+	if (args->args_size < sizeof(*args))
+		return -EINVAL;
+
 	return nvme_submit_io_passthru(l, &cmd, args->result);
 }
 
@@ -2088,10 +2053,9 @@ int nvme_resv_release(nvme_link_t l, struct nvme_resv_release_args *args)
 		.timeout_ms	= args->timeout,
 	};
 
-	if (args->args_size < sizeof(*args)) {
-		errno = EINVAL;
-		return -1;
-	}
+	if (args->args_size < sizeof(*args))
+		return -EINVAL;
+
 	return nvme_submit_io_passthru(l, &cmd, args->result);
 }
 
@@ -2107,10 +2071,9 @@ int nvme_resv_report(nvme_link_t l, struct nvme_resv_report_args *args)
 		.timeout_ms	= args->timeout,
 	};
 
-	if (args->args_size < sizeof(*args)) {
-		errno = EINVAL;
-		return -1;
-	}
+	if (args->args_size < sizeof(*args))
+		return -EINVAL;
+
 	return nvme_submit_io_passthru(l, &cmd, args->result);
 }
 
@@ -2129,10 +2092,8 @@ int nvme_io_mgmt_recv(nvme_link_t l, struct nvme_io_mgmt_recv_args *args)
 		.timeout_ms	= args->timeout,
 	};
 
-	if (args->args_size < sizeof(*args)) {
-		errno = EINVAL;
-		return -1;
-	}
+	if (args->args_size < sizeof(*args))
+		return -EINVAL;
 
 	return nvme_submit_io_passthru(l, &cmd, NULL);
 }
@@ -2150,10 +2111,8 @@ int nvme_io_mgmt_send(nvme_link_t l, struct nvme_io_mgmt_send_args *args)
 		.timeout_ms	= args->timeout,
 	};
 
-	if (args->args_size < sizeof(*args)) {
-		errno = EINVAL;
-		return -1;
-	}
+	if (args->args_size < sizeof(*args))
+		return -EINVAL;
 
 	return nvme_submit_io_passthru(l, &cmd, NULL);
 }
@@ -2177,10 +2136,9 @@ int nvme_zns_mgmt_send(nvme_link_t l, struct nvme_zns_mgmt_send_args *args)
 		.timeout_ms	= args->timeout,
 	};
 
-	if (args->args_size < sizeof(*args)) {
-		errno = EINVAL;
-		return -1;
-	}
+	if (args->args_size < sizeof(*args))
+		return -EINVAL;
+
 	return nvme_submit_io_passthru(l, &cmd, args->result);
 }
 
@@ -2205,10 +2163,9 @@ int nvme_zns_mgmt_recv(nvme_link_t l, struct nvme_zns_mgmt_recv_args *args)
 		.timeout_ms	= args->timeout,
 	};
 
-	if (args->args_size < sizeof(*args)) {
-		errno = EINVAL;
-		return -1;
-	}
+	if (args->args_size < sizeof(*args))
+		return -EINVAL;
+
 	return nvme_submit_io_passthru(l, &cmd, args->result);
 }
 
@@ -2218,10 +2175,8 @@ int nvme_zns_append(nvme_link_t l, struct nvme_zns_append_args *args)
 	const size_t size_v2 = sizeof_args(struct nvme_zns_append_args, ilbrt_u64, __u64);
 	__u32 cdw3, cdw10, cdw11, cdw12, cdw14, cdw15;
 
-	if (args->args_size < size_v1 || args->args_size > size_v2) {
-		errno = EINVAL;
-		return -1;
-	}
+	if (args->args_size < size_v1 || args->args_size > size_v2)
+		return -EINVAL;
 
 	cdw10 = args->zslba & 0xffffffff;
 	cdw11 = args->zslba >> 32;
@@ -2267,10 +2222,8 @@ int nvme_dim_send(nvme_link_t l, struct nvme_dim_args *args)
 		.timeout_ms = args->timeout,
 	};
 
-	if (args->args_size < sizeof(*args)) {
-		errno = EINVAL;
-		return -1;
-	}
+	if (args->args_size < sizeof(*args))
+		return -EINVAL;
 
 	return nvme_submit_admin_passthru(l, &cmd, args->result);
 }
@@ -2285,10 +2238,8 @@ int nvme_lm_cdq(nvme_link_t l, struct nvme_lm_cdq_args *args)
 	__u32 cdw11 = 0, data_len = 0, sz = 0;
 	int err;
 
-	if (args->args_size < size_v1 || args->args_size > size_v2) {
-		errno = EINVAL;
-		return -1;
-	}
+	if (args->args_size < size_v1 || args->args_size > size_v2)
+		return -EINVAL;
 
 	if (args->args_size == size_v1)
 		sz = args->sz_u8;
@@ -2313,10 +2264,8 @@ int nvme_lm_cdq(nvme_link_t l, struct nvme_lm_cdq_args *args)
 		.timeout_ms = args->timeout,
 	};
 
-	if (args->args_size < sizeof(*args)) {
-		errno = EINVAL;
-		return -1;
-	}
+	if (args->args_size < sizeof(*args))
+		return -EINVAL;
 
 	err = nvme_submit_admin_passthru(l, &cmd, args->result);
 
@@ -2338,10 +2287,8 @@ int nvme_lm_track_send(nvme_link_t l, struct nvme_lm_track_send_args *args)
 		.timeout_ms = args->timeout,
 	};
 
-	if (args->args_size < sizeof(*args)) {
-		errno = EINVAL;
-		return -1;
-	}
+	if (args->args_size < sizeof(*args))
+		return -EINVAL;
 
 	return nvme_submit_admin_passthru(l, &cmd, args->result);
 }
@@ -2378,10 +2325,8 @@ int nvme_lm_migration_send(nvme_link_t l, struct nvme_lm_migration_send_args *ar
 		.timeout_ms = args->timeout,
 	};
 
-	if (args->args_size < sizeof(*args)) {
-		errno = EINVAL;
-		return -1;
-	}
+	if (args->args_size < sizeof(*args))
+		return -EINVAL;
 
 	return nvme_submit_admin_passthru(l, &cmd, args->result);
 }
@@ -2412,10 +2357,8 @@ int nvme_lm_migration_recv(nvme_link_t l, struct nvme_lm_migration_recv_args *ar
 		.timeout_ms = args->timeout,
 	};
 
-	if (args->args_size < sizeof(*args)) {
-		errno = EINVAL;
-		return -1;
-	}
+	if (args->args_size < sizeof(*args))
+		return -EINVAL;
 
 	return nvme_submit_admin_passthru(l, &cmd, args->result);
 }

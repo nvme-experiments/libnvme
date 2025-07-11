@@ -63,7 +63,7 @@ static void test_set_features(void)
 	set_mock_admin_cmds(&mock_admin_cmd, 1);
 	err = nvme_set_features(test_dev, &args);
 	end_mock_cmds();
-	check(err == 0, "set features returned error %d, errno %m", err);
+	check(err == 0, "set features returned error %d", err);
 	check(result == TEST_RESULT,
 	      "got result %" PRIu32 ", expected %" PRIu32, result, TEST_RESULT);
 }
@@ -101,7 +101,7 @@ static void test_get_features(void)
 	set_mock_admin_cmds(&mock_admin_cmd, 1);
 	err = nvme_get_features(test_dev, &args);
 	end_mock_cmds();
-	check(err == 0, "get features returned error %d, errno %m", err);
+	check(err == 0, "get features returned error %d", err);
 	check(result == TEST_RESULT,
 	      "got result %" PRIu32 ", expected %" PRIu32, result, TEST_RESULT);
 	cmp(get_data, data, sizeof(data), "incorrect data");
@@ -128,7 +128,7 @@ static void test_set_features_data(void)
 		test_dev, TEST_FID, TEST_NSID, TEST_CDW11, false,
 		sizeof(data), data, &result);
 	end_mock_cmds();
-	check(err == 0, "set features returned error %d, errno %m", err);
+	check(err == 0, "set features returned error %d", err);
 	check(result == TEST_RESULT,
 	      "got result %" PRIu32 ", expected %" PRIu32, result, TEST_RESULT);
 }
@@ -152,7 +152,7 @@ static void test_get_features_data(void)
 	err = nvme_get_features_data(
 		test_dev, TEST_FID, TEST_NSID, sizeof(data), get_data, &result);
 	end_mock_cmds();
-	check(err == 0, "set features returned error %d, errno %m", err);
+	check(err == 0, "set features returned error %d", err);
 	check(result == TEST_RESULT,
 	      "got result %" PRIu32 ", expected %" PRIu32, result, TEST_RESULT);
 	cmp(get_data, data, sizeof(data), "incorrect data");
@@ -175,7 +175,7 @@ static void test_set_features_simple(void)
 	err = nvme_set_features_simple(
 		test_dev, TEST_FID, TEST_NSID, TEST_CDW11, true, &result);
 	end_mock_cmds();
-	check(err == 0, "set features returned error %d, errno %m", err);
+	check(err == 0, "set features returned error %d", err);
 	check(result == TEST_RESULT,
 	      "got result %" PRIu32 ", expected %" PRIu32, result, TEST_RESULT);
 }
@@ -194,7 +194,7 @@ static void test_get_features_simple(void)
 	set_mock_admin_cmds(&mock_admin_cmd, 1);
 	err = nvme_get_features_simple(test_dev, TEST_FID, TEST_NSID, &result);
 	end_mock_cmds();
-	check(err == 0, "set features returned error %d, errno %m", err);
+	check(err == 0, "set features returned error %d", err);
 	check(result == TEST_RESULT,
 	      "got result %" PRIu32 ", expected %" PRIu32, result, TEST_RESULT);
 }
@@ -215,7 +215,7 @@ static void test_set_arbitration(void)
 	err = nvme_set_features_arbitration(
 		test_dev, AB, LPW, MPW, HPW, false, &result);
 	end_mock_cmds();
-	check(err == 0, "set features returned error %d, errno %m", err);
+	check(err == 0, "set features returned error %d", err);
 	check(result == TEST_RESULT,
 	      "got result %" PRIu32 ", expected %" PRIu32, result, TEST_RESULT);
 }
@@ -233,7 +233,7 @@ static void test_get_arbitration(void)
 	set_mock_admin_cmds(&mock_admin_cmd, 1);
 	err = nvme_get_features_arbitration(test_dev, TEST_SEL, &result);
 	end_mock_cmds();
-	check(err == 0, "get features returned error %d, errno %m", err);
+	check(err == 0, "get features returned error %d", err);
 	check(result == TEST_RESULT,
 	      "got result %" PRIu32 ", expected %" PRIu32, result, TEST_RESULT);
 }
@@ -254,7 +254,7 @@ static void test_set_power_mgmt(void)
 	set_mock_admin_cmds(&mock_admin_cmd, 1);
 	err = nvme_set_features_power_mgmt(test_dev, PS, WH, true, &result);
 	end_mock_cmds();
-	check(err == 0, "set features returned error %d, errno %m", err);
+	check(err == 0, "set features returned error %d", err);
 	check(result == TEST_RESULT,
 	      "got result %" PRIu32 ", expected %" PRIu32, result, TEST_RESULT);
 }
@@ -272,7 +272,7 @@ static void test_get_power_mgmt(void)
 	set_mock_admin_cmds(&mock_admin_cmd, 1);
 	err = nvme_get_features_power_mgmt(test_dev, TEST_SEL, &result);
 	end_mock_cmds();
-	check(err == 0, "get features returned error %d, errno %m", err);
+	check(err == 0, "get features returned error %d", err);
 	check(result == TEST_RESULT,
 	      "got result %" PRIu32 ", expected %" PRIu32, result, TEST_RESULT);
 }
@@ -298,7 +298,7 @@ static void test_set_lba_range(void)
 	err = nvme_set_features_lba_range(
 		test_dev, TEST_NSID, NUM, false, &range_types, &result);
 	end_mock_cmds();
-	check(err == 0, "set features returned error %d, errno %m", err);
+	check(err == 0, "set features returned error %d", err);
 	check(result == TEST_RESULT,
 	      "got result %" PRIu32 ", expected %" PRIu32, result, TEST_RESULT);
 }
@@ -322,7 +322,7 @@ static void test_get_lba_range(void)
 	err = nvme_get_features_lba_range(
 		test_dev, TEST_SEL, TEST_NSID, &get_range_types, &result);
 	end_mock_cmds();
-	check(err == 0, "get features returned error %d, errno %m", err);
+	check(err == 0, "get features returned error %d", err);
 	check(result == TEST_RESULT,
 	      "got result %" PRIu32 ", expected %" PRIu32, result, TEST_RESULT);
 	cmp(&get_range_types, &range_types, sizeof(range_types),
@@ -349,7 +349,7 @@ static void test_set_temp_thresh(void)
 	err = nvme_set_features_temp_thresh(
 		test_dev, TMPTH, TMPSEL, THSEL, 0, true, &result);
 	end_mock_cmds();
-	check(err == 0, "set features returned error %d, errno %m", err);
+	check(err == 0, "set features returned error %d", err);
 	check(result == TEST_RESULT,
 	      "got result %" PRIu32 ", expected %" PRIu32, result, TEST_RESULT);
 }
@@ -372,7 +372,7 @@ static void test_get_temp_thresh(void)
 	set_mock_admin_cmds(&mock_admin_cmd, 1);
 	err = nvme_get_features_temp_thresh(test_dev, TEST_SEL, 0, 0, &result);
 	end_mock_cmds();
-	check(err == 0, "get features returned error %d, errno %m", err);
+	check(err == 0, "get features returned error %d", err);
 	check(result == TEST_RESULT,
 	      "got result %" PRIu32 ", expected %" PRIu32, result, TEST_RESULT);
 }
@@ -395,7 +395,7 @@ static void test_set_err_recovery(void)
 	err = nvme_set_features_err_recovery(
 		test_dev, TEST_NSID, TLER, true, false, &result);
 	end_mock_cmds();
-	check(err == 0, "set features returned error %d, errno %m", err);
+	check(err == 0, "set features returned error %d", err);
 	check(result == TEST_RESULT,
 	      "got result %" PRIu32 ", expected %" PRIu32, result, TEST_RESULT);
 }
@@ -415,7 +415,7 @@ static void test_get_err_recovery(void)
 	err = nvme_get_features_err_recovery(
 		test_dev, TEST_SEL, TEST_NSID, &result);
 	end_mock_cmds();
-	check(err == 0, "get features returned error %d, errno %m", err);
+	check(err == 0, "get features returned error %d", err);
 	check(result == TEST_RESULT,
 	      "got result %" PRIu32 ", expected %" PRIu32, result, TEST_RESULT);
 }
@@ -435,7 +435,7 @@ static void test_set_volatile_wc(void)
 	set_mock_admin_cmds(&mock_admin_cmd, 1);
 	err = nvme_set_features_volatile_wc(test_dev, true, true, &result);
 	end_mock_cmds();
-	check(err == 0, "set features returned error %d, errno %m", err);
+	check(err == 0, "set features returned error %d", err);
 	check(result == TEST_RESULT,
 	      "got result %" PRIu32 ", expected %" PRIu32, result, TEST_RESULT);
 }
@@ -454,7 +454,7 @@ static void test_get_volatile_wc(void)
 	set_mock_admin_cmds(&mock_admin_cmd, 1);
 	err = nvme_get_features_volatile_wc(test_dev, TEST_SEL, &result);
 	end_mock_cmds();
-	check(err == 0, "get features returned error %d, errno %m", err);
+	check(err == 0, "get features returned error %d", err);
 	check(result == TEST_RESULT,
 	      "got result %" PRIu32 ", expected %" PRIu32, result, TEST_RESULT);
 }
@@ -472,7 +472,7 @@ static void test_get_num_queues(void)
 	set_mock_admin_cmds(&mock_admin_cmd, 1);
 	err = nvme_get_features_num_queues(test_dev, TEST_SEL, &result);
 	end_mock_cmds();
-	check(err == 0, "get features returned error %d, errno %m", err);
+	check(err == 0, "get features returned error %d", err);
 	check(result == TEST_RESULT,
 	      "got result %" PRIu32 ", expected %" PRIu32, result, TEST_RESULT);
 }
@@ -493,7 +493,7 @@ static void test_set_irq_coalesce(void)
 	err = nvme_set_features_irq_coalesce(
 		test_dev, THR, TIME, false, &result);
 	end_mock_cmds();
-	check(err == 0, "set features returned error %d, errno %m", err);
+	check(err == 0, "set features returned error %d", err);
 	check(result == TEST_RESULT,
 	      "got result %" PRIu32 ", expected %" PRIu32, result, TEST_RESULT);
 }
@@ -511,7 +511,7 @@ static void test_get_irq_coalesce(void)
 	set_mock_admin_cmds(&mock_admin_cmd, 1);
 	err = nvme_get_features_irq_coalesce(test_dev, TEST_SEL, &result);
 	end_mock_cmds();
-	check(err == 0, "get features returned error %d, errno %m", err);
+	check(err == 0, "get features returned error %d", err);
 	check(result == TEST_RESULT,
 	      "got result %" PRIu32 ", expected %" PRIu32, result, TEST_RESULT);
 }
@@ -533,7 +533,7 @@ static void test_set_irq_config(void)
 	set_mock_admin_cmds(&mock_admin_cmd, 1);
 	err = nvme_set_features_irq_config(test_dev, IV, true, true, &result);
 	end_mock_cmds();
-	check(err == 0, "set features returned error %d, errno %m", err);
+	check(err == 0, "set features returned error %d", err);
 	check(result == TEST_RESULT,
 	      "got result %" PRIu32 ", expected %" PRIu32, result, TEST_RESULT);
 }
@@ -553,7 +553,7 @@ static void test_get_irq_config(void)
 	set_mock_admin_cmds(&mock_admin_cmd, 1);
 	err = nvme_get_features_irq_config(test_dev, TEST_SEL, IV, &result);
 	end_mock_cmds();
-	check(err == 0, "get features returned error %d, errno %m", err);
+	check(err == 0, "get features returned error %d", err);
 	check(result == TEST_RESULT,
 	      "got result %" PRIu32 ", expected %" PRIu32, result, TEST_RESULT);
 }
@@ -572,7 +572,7 @@ static void test_set_write_atomic(void)
 	set_mock_admin_cmds(&mock_admin_cmd, 1);
 	err = nvme_set_features_write_atomic(test_dev, true, false, &result);
 	end_mock_cmds();
-	check(err == 0, "set features returned error %d, errno %m", err);
+	check(err == 0, "set features returned error %d", err);
 	check(result == TEST_RESULT,
 	      "got result %" PRIu32 ", expected %" PRIu32, result, TEST_RESULT);
 }
@@ -590,7 +590,7 @@ static void test_get_write_atomic(void)
 	set_mock_admin_cmds(&mock_admin_cmd, 1);
 	err = nvme_get_features_write_atomic(test_dev, TEST_SEL, &result);
 	end_mock_cmds();
-	check(err == 0, "get features returned error %d, errno %m", err);
+	check(err == 0, "get features returned error %d", err);
 	check(result == TEST_RESULT,
 	      "got result %" PRIu32 ", expected %" PRIu32, result, TEST_RESULT);
 }
@@ -611,7 +611,7 @@ static void test_set_async_event(void)
 	set_mock_admin_cmds(&mock_admin_cmd, 1);
 	err = nvme_set_features_async_event(test_dev, EVENTS, true, &result);
 	end_mock_cmds();
-	check(err == 0, "set features returned error %d, errno %m", err);
+	check(err == 0, "set features returned error %d", err);
 	check(result == TEST_RESULT,
 	      "got result %" PRIu32 ", expected %" PRIu32, result, TEST_RESULT);
 }
@@ -629,7 +629,7 @@ static void test_get_async_event(void)
 	set_mock_admin_cmds(&mock_admin_cmd, 1);
 	err = nvme_get_features_async_event(test_dev, TEST_SEL, &result);
 	end_mock_cmds();
-	check(err == 0, "get features returned error %d, errno %m", err);
+	check(err == 0, "get features returned error %d", err);
 	check(result == TEST_RESULT,
 	      "got result %" PRIu32 ", expected %" PRIu32, result, TEST_RESULT);
 }
@@ -652,7 +652,7 @@ static void test_set_auto_pst(void)
 	set_mock_admin_cmds(&mock_admin_cmd, 1);
 	err = nvme_set_features_auto_pst(test_dev, true, false, &apst, &result);
 	end_mock_cmds();
-	check(err == 0, "set features returned error %d, errno %m", err);
+	check(err == 0, "set features returned error %d", err);
 	check(result == TEST_RESULT,
 	      "got result %" PRIu32 ", expected %" PRIu32, result, TEST_RESULT);
 }
@@ -674,7 +674,7 @@ static void test_get_auto_pst(void)
 	set_mock_admin_cmds(&mock_admin_cmd, 1);
 	err = nvme_get_features_auto_pst(test_dev, TEST_SEL, &get_apst, &result);
 	end_mock_cmds();
-	check(err == 0, "get features returned error %d, errno %m", err);
+	check(err == 0, "get features returned error %d", err);
 	check(result == TEST_RESULT,
 	      "got result %" PRIu32 ", expected %" PRIu32, result, TEST_RESULT);
 	cmp(&get_apst, &apst, sizeof(apst), "incorrect apst");
@@ -698,7 +698,7 @@ static void test_get_host_mem_buf(void)
 	err = nvme_get_features_host_mem_buf(
 		test_dev, TEST_SEL, &get_attrs, &result);
 	end_mock_cmds();
-	check(err == 0, "get features returned error %d, errno %m", err);
+	check(err == 0, "get features returned error %d", err);
 	check(result == TEST_RESULT,
 	      "got result %" PRIu32 ", expected %" PRIu32, result, TEST_RESULT);
 	cmp(&get_attrs, &attrs, sizeof(attrs), "incorrect attrs");
@@ -725,7 +725,7 @@ static void test_set_timestamp(void)
 	set_mock_admin_cmds(&mock_admin_cmd, 1);
 	err = nvme_set_features_timestamp(test_dev, true, timestamp);
 	end_mock_cmds();
-	check(err == 0, "set features returned error %d, errno %m", err);
+	check(err == 0, "set features returned error %d", err);
 }
 
 static void test_get_timestamp(void)
@@ -743,7 +743,7 @@ static void test_get_timestamp(void)
 	set_mock_admin_cmds(&mock_admin_cmd, 1);
 	err = nvme_get_features_timestamp(test_dev, TEST_SEL, &get_ts);
 	end_mock_cmds();
-	check(err == 0, "get features returned error %d, errno %m", err);
+	check(err == 0, "get features returned error %d", err);
 	cmp(&get_ts, &ts, sizeof(ts), "incorrect timestamp");
 }
 
@@ -760,7 +760,7 @@ static void test_get_kato(void)
 	set_mock_admin_cmds(&mock_admin_cmd, 1);
 	err = nvme_get_features_kato(test_dev, TEST_SEL, &result);
 	end_mock_cmds();
-	check(err == 0, "get features returned error %d, errno %m", err);
+	check(err == 0, "get features returned error %d", err);
 	check(result == TEST_RESULT,
 	      "got result %" PRIu32 ", expected %" PRIu32, result, TEST_RESULT);
 }
@@ -780,7 +780,7 @@ static void test_set_hctm(void)
 	set_mock_admin_cmds(&mock_admin_cmd, 1);
 	err = nvme_set_features_hctm(test_dev, TMT2, TMT1, false, &result);
 	end_mock_cmds();
-	check(err == 0, "set features returned error %d, errno %m", err);
+	check(err == 0, "set features returned error %d", err);
 	check(result == TEST_RESULT,
 	      "got result %" PRIu32 ", expected %" PRIu32, result, TEST_RESULT);
 }
@@ -798,7 +798,7 @@ static void test_get_hctm(void)
 	set_mock_admin_cmds(&mock_admin_cmd, 1);
 	err = nvme_get_features_hctm(test_dev, TEST_SEL, &result);
 	end_mock_cmds();
-	check(err == 0, "get features returned error %d, errno %m", err);
+	check(err == 0, "get features returned error %d", err);
 	check(result == TEST_RESULT,
 	      "got result %" PRIu32 ", expected %" PRIu32, result, TEST_RESULT);
 }
@@ -818,7 +818,7 @@ static void test_set_nopsc(void)
 	set_mock_admin_cmds(&mock_admin_cmd, 1);
 	err = nvme_set_features_nopsc(test_dev, true, true, &result);
 	end_mock_cmds();
-	check(err == 0, "set features returned error %d, errno %m", err);
+	check(err == 0, "set features returned error %d", err);
 	check(result == TEST_RESULT,
 	      "got result %" PRIu32 ", expected %" PRIu32, result, TEST_RESULT);
 }
@@ -836,7 +836,7 @@ static void test_get_nopsc(void)
 	set_mock_admin_cmds(&mock_admin_cmd, 1);
 	err = nvme_get_features_nopsc(test_dev, TEST_SEL, &result);
 	end_mock_cmds();
-	check(err == 0, "get features returned error %d, errno %m", err);
+	check(err == 0, "get features returned error %d", err);
 	check(result == TEST_RESULT,
 	      "got result %" PRIu32 ", expected %" PRIu32, result, TEST_RESULT);
 }
@@ -858,7 +858,7 @@ static void test_set_rrl(void)
 	set_mock_admin_cmds(&mock_admin_cmd, 1);
 	err = nvme_set_features_rrl(test_dev, RRL, NVMSETID, false, &result);
 	end_mock_cmds();
-	check(err == 0, "set features returned error %d, errno %m", err);
+	check(err == 0, "set features returned error %d", err);
 	check(result == TEST_RESULT,
 	      "got result %" PRIu32 ", expected %" PRIu32, result, TEST_RESULT);
 }
@@ -877,7 +877,7 @@ static void test_get_rrl(void)
 	set_mock_admin_cmds(&mock_admin_cmd, 1);
 	err = nvme_get_features_rrl(test_dev, TEST_SEL, &result);
 	end_mock_cmds();
-	check(err == 0, "get features returned error %d, errno %m", err);
+	check(err == 0, "get features returned error %d", err);
 	check(result == TEST_RESULT,
 	      "got result %" PRIu32 ", expected %" PRIu32, result, TEST_RESULT);
 }
@@ -904,7 +904,7 @@ static void test_set_plm_config(void)
 	err = nvme_set_features_plm_config(
 		test_dev, true, NVMSETID, true, &config, &result);
 	end_mock_cmds();
-	check(err == 0, "set features returned error %d, errno %m", err);
+	check(err == 0, "set features returned error %d", err);
 	check(result == TEST_RESULT,
 	      "got result %" PRIu32 ", expected %" PRIu32, result, TEST_RESULT);
 }
@@ -929,7 +929,7 @@ static void test_get_plm_config(void)
 	err = nvme_get_features_plm_config(
 		test_dev, TEST_SEL, NVMSETID, &get_config, &result);
 	end_mock_cmds();
-	check(err == 0, "get features returned error %d, errno %m", err);
+	check(err == 0, "get features returned error %d", err);
 	check(result == TEST_RESULT,
 	      "got result %" PRIu32 ", expected %" PRIu32, result, TEST_RESULT);
 	cmp(&get_config, &config, sizeof(config), "incorrect PLM config");
@@ -953,7 +953,7 @@ static void test_set_plm_window(void)
 	err = nvme_set_features_plm_window(
 		test_dev, SEL, NVMSETID, false, &result);
 	end_mock_cmds();
-	check(err == 0, "set features returned error %d, errno %m", err);
+	check(err == 0, "set features returned error %d", err);
 	check(result == TEST_RESULT,
 	      "got result %" PRIu32 ", expected %" PRIu32, result, TEST_RESULT);
 }
@@ -974,7 +974,7 @@ static void test_get_plm_window(void)
 	err = nvme_get_features_plm_window(
 		test_dev, TEST_SEL, NVMSETID, &result);
 	end_mock_cmds();
-	check(err == 0, "get features returned error %d, errno %m", err);
+	check(err == 0, "get features returned error %d", err);
 	check(result == TEST_RESULT,
 	      "got result %" PRIu32 ", expected %" PRIu32, result, TEST_RESULT);
 }
@@ -996,7 +996,7 @@ static void test_set_lba_sts_interval(void)
 	err = nvme_set_features_lba_sts_interval(
 		test_dev, LSIRI, LSIPI, true, &result);
 	end_mock_cmds();
-	check(err == 0, "set features returned error %d, errno %m", err);
+	check(err == 0, "set features returned error %d", err);
 	check(result == TEST_RESULT,
 	      "got result %" PRIu32 ", expected %" PRIu32, result, TEST_RESULT);
 }
@@ -1014,7 +1014,7 @@ static void test_get_lba_sts_interval(void)
 	set_mock_admin_cmds(&mock_admin_cmd, 1);
 	err = nvme_get_features_lba_sts_interval(test_dev, TEST_SEL, &result);
 	end_mock_cmds();
-	check(err == 0, "get features returned error %d, errno %m", err);
+	check(err == 0, "get features returned error %d", err);
 	check(result == TEST_RESULT,
 	      "got result %" PRIu32 ", expected %" PRIu32, result, TEST_RESULT);
 }
@@ -1035,7 +1035,7 @@ static void test_set_host_behavior(void)
 	set_mock_admin_cmds(&mock_admin_cmd, 1);
 	err = nvme_set_features_host_behavior(test_dev, true, &behavior);
 	end_mock_cmds();
-	check(err == 0, "set features returned error %d, errno %m", err);
+	check(err == 0, "set features returned error %d", err);
 }
 
 static void test_get_host_behavior(void)
@@ -1056,7 +1056,7 @@ static void test_get_host_behavior(void)
 	err = nvme_get_features_host_behavior(
 		test_dev, TEST_SEL, &get_behavior, &result);
 	end_mock_cmds();
-	check(err == 0, "get features returned error %d, errno %m", err);
+	check(err == 0, "get features returned error %d", err);
 	check(result == TEST_RESULT,
 	      "got result %" PRIu32 ", expected %" PRIu32, result, TEST_RESULT);
 	cmp(&get_behavior, &behavior, sizeof(behavior), "incorrect behavior");
@@ -1076,7 +1076,7 @@ static void test_set_sanitize(void)
 	set_mock_admin_cmds(&mock_admin_cmd, 1);
 	err = nvme_set_features_sanitize(test_dev, true, false, &result);
 	end_mock_cmds();
-	check(err == 0, "set features returned error %d, errno %m", err);
+	check(err == 0, "set features returned error %d", err);
 	check(result == TEST_RESULT,
 	      "got result %" PRIu32 ", expected %" PRIu32, result, TEST_RESULT);
 }
@@ -1094,7 +1094,7 @@ static void test_get_sanitize(void)
 	set_mock_admin_cmds(&mock_admin_cmd, 1);
 	err = nvme_get_features_sanitize(test_dev, TEST_SEL, &result);
 	end_mock_cmds();
-	check(err == 0, "get features returned error %d, errno %m", err);
+	check(err == 0, "get features returned error %d", err);
 	check(result == TEST_RESULT,
 	      "got result %" PRIu32 ", expected %" PRIu32, result, TEST_RESULT);
 }
@@ -1117,7 +1117,7 @@ static void test_set_endurance_evt_cfg(void)
 	err = nvme_set_features_endurance_evt_cfg(
 		test_dev, ENDGID, EGWARN, true, &result);
 	end_mock_cmds();
-	check(err == 0, "set features returned error %d, errno %m", err);
+	check(err == 0, "set features returned error %d", err);
 	check(result == TEST_RESULT,
 	      "got result %" PRIu32 ", expected %" PRIu32, result, TEST_RESULT);
 }
@@ -1138,7 +1138,7 @@ static void test_get_endurance_event_cfg(void)
 	err = nvme_get_features_endurance_event_cfg(
 		test_dev, TEST_SEL, ENDGID, &result);
 	end_mock_cmds();
-	check(err == 0, "get features returned error %d, errno %m", err);
+	check(err == 0, "get features returned error %d", err);
 	check(result == TEST_RESULT,
 	      "got result %" PRIu32 ", expected %" PRIu32, result, TEST_RESULT);
 }
@@ -1156,7 +1156,7 @@ static void test_set_iocs_profile(void)
 	set_mock_admin_cmds(&mock_admin_cmd, 1);
 	err = nvme_set_features_iocs_profile(test_dev, IOCSI, false);
 	end_mock_cmds();
-	check(err == 0, "set features returned error %d, errno %m", err);
+	check(err == 0, "set features returned error %d", err);
 }
 
 static void test_get_iocs_profile(void)
@@ -1172,7 +1172,7 @@ static void test_get_iocs_profile(void)
 	set_mock_admin_cmds(&mock_admin_cmd, 1);
 	err = nvme_get_features_iocs_profile(test_dev, TEST_SEL, &result);
 	end_mock_cmds();
-	check(err == 0, "get features returned error %d, errno %m", err);
+	check(err == 0, "get features returned error %d", err);
 	check(result == TEST_RESULT,
 	      "got result %" PRIu32 ", expected %" PRIu32, result, TEST_RESULT);
 }
@@ -1193,7 +1193,7 @@ static void test_set_sw_progress(void)
 	set_mock_admin_cmds(&mock_admin_cmd, 1);
 	err = nvme_set_features_sw_progress(test_dev, PBSLC, true, &result);
 	end_mock_cmds();
-	check(err == 0, "set features returned error %d, errno %m", err);
+	check(err == 0, "set features returned error %d", err);
 	check(result == TEST_RESULT,
 	      "got result %" PRIu32 ", expected %" PRIu32, result, TEST_RESULT);
 }
@@ -1211,7 +1211,7 @@ static void test_get_sw_progress(void)
 	set_mock_admin_cmds(&mock_admin_cmd, 1);
 	err = nvme_get_features_sw_progress(test_dev, TEST_SEL, &result);
 	end_mock_cmds();
-	check(err == 0, "get features returned error %d, errno %m", err);
+	check(err == 0, "get features returned error %d", err);
 	check(result == TEST_RESULT,
 	      "got result %" PRIu32 ", expected %" PRIu32, result, TEST_RESULT);
 }
@@ -1233,7 +1233,7 @@ static void test_set_host_id(void)
 	set_mock_admin_cmds(&mock_admin_cmd, 1);
 	err = nvme_set_features_host_id(test_dev, false, true, hostid);
 	end_mock_cmds();
-	check(err == 0, "set features returned error %d, errno %m", err);
+	check(err == 0, "set features returned error %d", err);
 }
 
 static void test_set_host_id_extended(void)
@@ -1253,7 +1253,7 @@ static void test_set_host_id_extended(void)
 	set_mock_admin_cmds(&mock_admin_cmd, 1);
 	err = nvme_set_features_host_id(test_dev, true, false, hostid);
 	end_mock_cmds();
-	check(err == 0, "set features returned error %d, errno %m", err);
+	check(err == 0, "set features returned error %d", err);
 }
 
 static void test_get_host_id(void)
@@ -1273,7 +1273,7 @@ static void test_get_host_id(void)
 	err = nvme_get_features_host_id(
 		test_dev, TEST_SEL, false, sizeof(hostid), get_hostid);
 	end_mock_cmds();
-	check(err == 0, "get features returned error %d, errno %m", err);
+	check(err == 0, "get features returned error %d", err);
 	cmp(get_hostid, hostid, sizeof(hostid), "incorrect host identifier");
 }
 
@@ -1295,7 +1295,7 @@ static void test_get_host_id_extended(void)
 	err = nvme_get_features_host_id(
 		test_dev, TEST_SEL, true, sizeof(hostid), get_hostid);
 	end_mock_cmds();
-	check(err == 0, "get features returned error %d, errno %m", err);
+	check(err == 0, "get features returned error %d", err);
 	cmp(get_hostid, hostid, sizeof(hostid), "incorrect host identifier");
 }
 
@@ -1317,7 +1317,7 @@ static void test_set_resv_mask(void)
 	err = nvme_set_features_resv_mask(
 		test_dev, TEST_NSID, MASK, true, &result);
 	end_mock_cmds();
-	check(err == 0, "set features returned error %d, errno %m", err);
+	check(err == 0, "set features returned error %d", err);
 	check(result == TEST_RESULT,
 	      "got result %" PRIu32 ", expected %" PRIu32, result, TEST_RESULT);
 }
@@ -1337,7 +1337,7 @@ static void test_get_resv_mask(void)
 	err = nvme_get_features_resv_mask(
 		test_dev, TEST_SEL, TEST_NSID, &result);
 	end_mock_cmds();
-	check(err == 0, "get features returned error %d, errno %m", err);
+	check(err == 0, "get features returned error %d", err);
 	check(result == TEST_RESULT,
 	      "got result %" PRIu32 ", expected %" PRIu32, result, TEST_RESULT);
 }
@@ -1358,7 +1358,7 @@ static void test_set_resv_persist(void)
 	err = nvme_set_features_resv_persist(
 		test_dev, TEST_NSID, true, false, &result);
 	end_mock_cmds();
-	check(err == 0, "set features returned error %d, errno %m", err);
+	check(err == 0, "set features returned error %d", err);
 	check(result == TEST_RESULT,
 	      "got result %" PRIu32 ", expected %" PRIu32, result, TEST_RESULT);
 }
@@ -1378,7 +1378,7 @@ static void test_get_resv_persist(void)
 	err = nvme_get_features_resv_persist(
 		test_dev, TEST_SEL, TEST_NSID, &result);
 	end_mock_cmds();
-	check(err == 0, "get features returned error %d, errno %m", err);
+	check(err == 0, "get features returned error %d", err);
 	check(result == TEST_RESULT,
 	      "got result %" PRIu32 ", expected %" PRIu32, result, TEST_RESULT);
 }
@@ -1402,7 +1402,7 @@ static void test_set_write_protect(void)
 	err = nvme_set_features_write_protect(
 		test_dev, TEST_NSID, STATE, true, &result);
 	end_mock_cmds();
-	check(err == 0, "set features returned error %d, errno %m", err);
+	check(err == 0, "set features returned error %d", err);
 	check(result == TEST_RESULT,
 	      "got result %" PRIu32 ", expected %" PRIu32, result, TEST_RESULT);
 }
@@ -1422,7 +1422,7 @@ static void test_get_write_protect(void)
 	err = nvme_get_features_write_protect(
 		test_dev, TEST_NSID, TEST_SEL, &result);
 	end_mock_cmds();
-	check(err == 0, "get features returned error %d, errno %m", err);
+	check(err == 0, "get features returned error %d", err);
 	check(result == TEST_RESULT,
 	      "got result %" PRIu32 ", expected %" PRIu32, result, TEST_RESULT);
 }
@@ -1471,8 +1471,7 @@ static void test_set_kernel_error(void)
 	err = nvme_set_features_resv_mask(
 		test_dev, TEST_NSID, MASK, false, &result);
 	end_mock_cmds();
-	check(err == -1, "got error %d, expected -1", err);
-	check(errno == EIO, "unexpected error %m");
+	check(err == -EIO, "got error %d, expected -EIO", err);
 	check(!result, "result unexpectedly set to %" PRIu32, result);
 }
 
@@ -1514,8 +1513,7 @@ static void test_get_kernel_error(void)
 	set_mock_admin_cmds(&mock_admin_cmd, 1);
 	err = nvme_get_features_num_queues(test_dev, TEST_SEL, &result);
 	end_mock_cmds();
-	check(err == -1, "got error %d, expected -1", err);
-	check(errno == EBUSY, "unexpected error %m");
+	check(err == -EBUSY, "got error %d, expected -EBUSY", err);
 	check(!result, "result unexpectedly set to %" PRIu32, result);
 }
 
@@ -1534,7 +1532,7 @@ int main(void)
 	nvme_root_t r = nvme_create_root(stdout, DEFAULT_LOGLEVEL);
 
 	set_mock_fd(TEST_FD);
-	test_dev = nvme_open(r, "NVME_TEST_FD");
+	check(!nvme_open(r, "NVME_TEST_FD", &test_dev), "opening test link failed");
 
 	RUN_TEST(set_features);
 	RUN_TEST(get_features);

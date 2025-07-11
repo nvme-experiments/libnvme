@@ -284,7 +284,8 @@ struct nvme_get_discovery_args {
  * Return: Pointer to the discovery log page (to be freed). NULL
  * on failure and errno is set.
  */
-struct nvmf_discovery_log *nvmf_get_discovery_wargs(struct nvme_get_discovery_args *args);
+int nvmf_get_discovery_wargs(struct nvme_get_discovery_args *args,
+			     struct nvmf_discovery_log **log);
 
 /**
  * nvmf_hostnqn_generate() - Generate a machine specific host nqn
@@ -346,9 +347,11 @@ char *nvmf_hostid_from_file();
  *
  * Return: Pointer to the new controller
  */
-nvme_ctrl_t nvmf_connect_disc_entry(nvme_host_t h,
-	struct nvmf_disc_log_entry *e,
-	const struct nvme_fabrics_config *defcfg, bool *discover);
+int nvmf_connect_disc_entry(nvme_host_t h,
+			    struct nvmf_disc_log_entry *e,
+			    const struct nvme_fabrics_config *defcfg,
+			    bool *discover,
+			    nvme_ctrl_t *c);
 
 /**
  * nvmf_is_registration_supported - check whether registration can be performed.
@@ -392,7 +395,7 @@ int nvmf_register_ctrl(nvme_ctrl_t c, enum nvmf_dim_tas tas, __u32 *result);
  * Return: &nvme_fabrics_uri structure on success; NULL on failure with errno
  * set.
  */
-struct nvme_fabrics_uri *nvme_parse_uri(const char *str);
+int nvme_parse_uri(const char *str, struct nvme_fabrics_uri **uri);
 
 /**
  * nvme_free_uri() - Free the URI structure
