@@ -1651,7 +1651,7 @@ int main(void)
 	nvme_root_t r = nvme_create_root(stdout, DEFAULT_LOGLEVEL);
 
 	set_mock_fd(TEST_FD);
-	test_link = nvme_open(r, "NVME_TEST_FD");
+	check(!nvme_open(r, "NVME_TEST_FD", &test_link), "opening test link failed");
 
 	RUN_TEST(format_nvm);
 	RUN_TEST(ns_mgmt);

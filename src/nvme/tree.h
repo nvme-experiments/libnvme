@@ -157,7 +157,7 @@ bool nvme_host_is_pdc_enabled(nvme_host_t h, bool fallback);
  *
  * Return: &nvme_host_t object
  */
-nvme_host_t nvme_default_host(nvme_root_t r);
+int nvme_default_host(nvme_root_t r, nvme_host_t *h);
 
 /**
  * nvme_host_get_ids - Retrieve host ids from various sources
@@ -393,10 +393,11 @@ bool nvme_ctrl_config_match(struct nvme_ctrl *c, const char *transport,
  *
  * Return: Controller instance
  */
-nvme_ctrl_t nvme_create_ctrl(nvme_root_t r,
-			     const char *subsysnqn, const char *transport,
-			     const char *traddr, const char *host_traddr,
-			     const char *host_iface, const char *trsvcid);
+int nvme_create_ctrl(nvme_root_t r,
+		     const char *subsysnqn, const char *transport,
+		     const char *traddr, const char *host_traddr,
+		     const char *host_iface, const char *trsvcid,
+		     nvme_ctrl_t *c);
 
 
 /**
@@ -1263,7 +1264,7 @@ int nvme_disconnect_ctrl(nvme_ctrl_t c);
  *
  * Return: nvme_ctrl_t object
  */
-nvme_ctrl_t nvme_scan_ctrl(nvme_root_t r, const char *name);
+int nvme_scan_ctrl(nvme_root_t r, const char *name, nvme_ctrl_t *c);
 
 /**
  * nvme_rescan_ctrl() - Rescan an existing controller
@@ -1427,7 +1428,7 @@ void nvme_free_host(nvme_host_t h);
  *
  * Return: nvme_root_t object of found elements
  */
-nvme_root_t nvme_scan(const char *config_file);
+int nvme_scan(const char *config_file, nvme_root_t *r);
 
 /**
  * nvme_read_config() - Read NVMe JSON configuration file
@@ -1559,7 +1560,7 @@ char *nvme_get_path_attr(nvme_path_t p, const char *attr);
  *
  * Return: nvme_ns_t object or NULL if not found.
  */
-nvme_ns_t nvme_scan_namespace(const char *name);
+int nvme_scan_namespace(const char *name, nvme_ns_t *ns);
 
 /**
  * nvme_host_get_hostsymname() - Get the host's symbolic name
