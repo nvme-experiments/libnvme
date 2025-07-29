@@ -79,10 +79,10 @@ static void test_one_group_rgo(void)
 	 * Since only one command was issued, chgcnt doesn't need to be checked.
 	 */
 	struct mock_cmd mock_admin_cmd = {
-		.opcode = nvme_admin_get_log_page,
+		.opcode= nvme_admin_get_log_page,
 		.data_len = len_dwords * 4,
 		.cdw10 = (len_dwords - 1) << 16 /* NUMDL */
-		       | NVME_LOG_ANA_LSP_RGO_GROUPS_ONLY << 8 /* LSP */
+		| NVME_LOG_ANA_LSP_RGO_GROUPS_ONLY << 8 /* LSP */
 		       | NVME_LOG_LID_ANA, /* LID */
 		.out_data = log_page,
 		.out_data_len = sizeof(log_page),

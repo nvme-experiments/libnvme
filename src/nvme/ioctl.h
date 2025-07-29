@@ -1209,69 +1209,98 @@ static inline int nvme_zns_identify_ctrl(nvme_link_t l, struct nvme_zns_id_ctrl 
 /**
  * nvme_get_log_page() - Get log page data
  * @l:		Link handle
+ * @cmd:	Passthru command to use
  * @xfer_len:	Max log transfer size per request to split the total.
- * @args:	&struct nvme_get_log_args argument structure
+ * @len:	Length of provided user buffer to hold the log data in bytes
+ * @lpo:	Log page offset for partial log transfers
+ * @log:	User space destination address to transfer the data
+ * @result:	The command completion result from CQE dword0
  *
  * Return: 0 on success, the nvme command status if a response was
  * received (see &enum nvme_status_field) or a negative error otherwise.
  */
-int nvme_get_log_page(nvme_link_t l, __u32 xfer_len, struct nvme_get_log_args *args);
+int nvme_get_log_page(nvme_link_t l, struct nvme_passthru_cmd *cmd,
+		      __u32 xfer_len, __u32 len, __u64 lpo, void *log,
+		      __u32 *result);
 
 /**
  * nvme_get_log() - NVMe Admin Get Log command
  * @l:		Link handle
- * @args:	&struct nvme_get_log_args argument structure
+ * @rae:	Retain asynchronous events
+ * @lsp:	Log specific field
+ * @lid:	Log page identifier, see &enum nvme_cmd_get_log_lid for known
+ *		values
+ * @lsi:	Log Specific Identifier
+ * @csi:	Command set identifier, see &enum nvme_csi for known values
+ * @ot:		Offset Type; if set @lpo specifies the index into the list
+ *		of data structures, otherwise @lpo specifies the byte offset
+ *		into the log page.
+ * @uidx:	UUID selection, if supported
+ * @nsid:	Namespace identifier, if applicable
+ * @xfer_len:	Max log transfer size per request to split the total.
+ * @len:	Length of provided user buffer to hold the log data in bytes
+ * @lpo:	Log page offset for partial log transfers
+ * @log:	User space destination address to transfer the data
+ * @result:	The command completion result from CQE dword0
  *
  * Return: The nvme command status if a response was received (see
  * &enum nvme_status_field) or -1 with errno set otherwise.
  */
-int nvme_get_log(nvme_link_t l, struct nvme_get_log_args *args);
+static inline int nvme_get_log(nvme_link_t l,
+			       bool rae, __u8 lsp,
+			       enum nvme_cmd_get_log_lid lid,
+			       __u16 lsi, enum nvme_csi csi,
+			       bool ot, __u8 uidx, __u32 nsid,
+			       __u32 xfer_len, __u32 len, __u64 lpo,
+			       void *log, __u32 *result)
+{
+	__u32 numd = (len >> 2) - 1;
+	__u16 numdu = numd >> 16, numdl = numd & 0xffff;
+
+	__u32 cdw10 = NVME_SET(lid, LOG_CDW10_LID) |
+			NVME_SET(lsp, LOG_CDW10_LSP) |
+			NVME_SET(!!rae, LOG_CDW10_RAE) |
+			NVME_SET(numdl, LOG_CDW10_NUMDL);
+	__u32 cdw11 = NVME_SET(numdu, LOG_CDW11_NUMDU) |
+			NVME_SET(lsi, LOG_CDW11_LSI);
+	__u32 cdw12 = lpo & 0xffffffff;
+	__u32 cdw13 = lpo >> 32;
+	__u32 cdw14 = NVME_SET(uidx, LOG_CDW14_UUID) |
+			NVME_SET(!!ot, LOG_CDW14_OT) |
+			NVME_SET(csi, LOG_CDW14_CSI);
+
+	struct nvme_passthru_cmd cmd = {
+		.opcode		= nvme_admin_get_log_page,
+		.nsid		= nsid,
+		.addr		= (__u64)(uintptr_t)log,
+		.data_len	= len,
+		.cdw10		= cdw10,
+		.cdw11		= cdw11,
+		.cdw12		= cdw12,
+		.cdw13		= cdw13,
+		.cdw14		= cdw14,
+	};
+
+	return nvme_get_log_page(l, &cmd, xfer_len, len, lpo, log, result);
+}
 
 static inline int nvme_get_nsid_log(nvme_link_t l, bool rae,
 			enum nvme_cmd_get_log_lid lid,
 			__u32 nsid, __u32 len, void *log)
 {
-	struct nvme_get_log_args args = {
-		.lpo = 0,
-		.result = NULL,
-		.log = log,
-		.args_size = sizeof(args),
-		.timeout = NVME_DEFAULT_IOCTL_TIMEOUT,
-		.lid = lid,
-		.len = len,
-		.nsid = nsid,
-		.csi = NVME_CSI_NVM,
-		.lsi = NVME_LOG_LSI_NONE,
-		.lsp = NVME_LOG_LSP_NONE,
-		.uuidx = NVME_UUID_NONE,
-		.rae = rae,
-		.ot = false,
-	};
-
-	return nvme_get_log_page(l, NVME_LOG_PAGE_PDU_SIZE, &args);
+	return nvme_get_log(l, rae, NVME_LOG_LSP_NONE,
+		lid, NVME_LOG_LSI_NONE, NVME_CSI_NVM,
+		false, NVME_UUID_NONE, nsid,
+		NVME_LOG_PAGE_PDU_SIZE, len, 0, log, NULL);
 }
 
-static inline int nvme_get_endgid_log(nvme_link_t l, bool rae, enum nvme_cmd_get_log_lid lid, __u16 endgid,
-				    __u32 len, void *log)
+static inline int nvme_get_endgid_log(nvme_link_t l, bool rae, enum nvme_cmd_get_log_lid lid,
+				      __u16 endgid, __u32 len, void *log)
 {
-	struct nvme_get_log_args args = {
-		.lpo = 0,
-		.result = NULL,
-		.log = log,
-		.args_size = sizeof(args),
-		.timeout = NVME_DEFAULT_IOCTL_TIMEOUT,
-		.lid = lid,
-		.len = len,
-		.nsid = NVME_NSID_NONE,
-		.csi = NVME_CSI_NVM,
-		.lsi = endgid,
-		.lsp = NVME_LOG_LSP_NONE,
-		.uuidx = NVME_LOG_LSP_NONE,
-		.rae = rae,
-		.ot = false,
-	};
-
-	return nvme_get_log_page(l, NVME_LOG_PAGE_PDU_SIZE, &args);
+	return nvme_get_log(l, rae, NVME_LOG_LSP_NONE,
+		lid, endgid, NVME_CSI_NVM,
+		false, NVME_UUID_NONE, NVME_NSID_NONE,
+		NVME_LOG_PAGE_PDU_SIZE, len, 0, log, NULL);
 }
 
 static inline int nvme_get_log_simple(nvme_link_t l, enum nvme_cmd_get_log_lid lid,
@@ -1397,23 +1426,10 @@ static inline int nvme_get_log_changed_ns_list(nvme_link_t l, bool rae,
 static inline int nvme_get_log_cmd_effects(nvme_link_t l, enum nvme_csi csi,
 			struct nvme_cmd_effects_log *effects_log)
 {
-	struct nvme_get_log_args args = {
-		.lpo = 0,
-		.result = NULL,
-		.log = effects_log,
-		.args_size = sizeof(args),
-		.timeout = NVME_DEFAULT_IOCTL_TIMEOUT,
-		.lid = NVME_LOG_LID_CMD_EFFECTS,
-		.len = sizeof(*effects_log),
-		.nsid = NVME_NSID_ALL,
-		.csi = csi,
-		.lsi = NVME_LOG_LSI_NONE,
-		.lsp = NVME_LOG_LSP_NONE,
-		.uuidx = NVME_UUID_NONE,
-		.rae = false,
-		.ot = false,
-	};
-	return nvme_get_log_page(l, NVME_LOG_PAGE_PDU_SIZE, &args);
+	return nvme_get_log(l, false, NVME_LOG_LSP_NONE,
+		NVME_LOG_LID_CMD_EFFECTS, NVME_LOG_LSI_NONE, csi,
+		false, NVME_UUID_NONE, NVME_NSID_ALL,
+		NVME_LOG_PAGE_PDU_SIZE, sizeof(*effects_log), 0, effects_log, NULL);
 }
 
 /**
@@ -1448,23 +1464,10 @@ static inline int nvme_get_log_create_telemetry_host_mcda(nvme_link_t l,
 			enum nvme_telemetry_da mcda,
 			struct nvme_telemetry_log *log)
 {
-	struct nvme_get_log_args args = {
-		.lpo = 0,
-		.result = NULL,
-		.log = log,
-		.args_size = sizeof(args),
-		.timeout = NVME_DEFAULT_IOCTL_TIMEOUT,
-		.lid = NVME_LOG_LID_TELEMETRY_HOST,
-		.len = sizeof(*log),
-		.nsid = NVME_NSID_NONE,
-		.csi = NVME_CSI_NVM,
-		.lsi = NVME_LOG_LSI_NONE,
-		.lsp = (__u8)((mcda << 1) | NVME_LOG_TELEM_HOST_LSP_CREATE),
-		.uuidx = NVME_UUID_NONE,
-		.rae = false,
-		.ot = false,
-	};
-	return nvme_get_log_page(l, NVME_LOG_PAGE_PDU_SIZE, &args);
+	return nvme_get_log(l, false, (__u8)((mcda << 1) | NVME_LOG_TELEM_HOST_LSP_CREATE),
+		NVME_LOG_LID_TELEMETRY_HOST, NVME_LOG_LSI_NONE, NVME_CSI_NVM,
+		false, NVME_UUID_NONE, NVME_NSID_NONE,
+		NVME_LOG_PAGE_PDU_SIZE, sizeof(*log), 0, log, NULL);
 }
 
 /**
@@ -1497,23 +1500,10 @@ static inline int nvme_get_log_create_telemetry_host(nvme_link_t l,
 static inline int nvme_get_log_telemetry_host(nvme_link_t l, __u64 offset,
 			__u32 len, void *log)
 {
-	struct nvme_get_log_args args = {
-		.lpo = offset,
-		.result = NULL,
-		.log = log,
-		.args_size = sizeof(args),
-		.timeout = NVME_DEFAULT_IOCTL_TIMEOUT,
-		.lid = NVME_LOG_LID_TELEMETRY_HOST,
-		.len = len,
-		.nsid = NVME_NSID_NONE,
-		.csi = NVME_CSI_NVM,
-		.lsi = NVME_LOG_LSI_NONE,
-		.lsp = NVME_LOG_TELEM_HOST_LSP_RETAIN,
-		.uuidx = NVME_UUID_NONE,
-		.rae = false,
-		.ot = false,
-	};
-	return nvme_get_log_page(l, NVME_LOG_PAGE_PDU_SIZE, &args);
+	return nvme_get_log(l, false, NVME_LOG_TELEM_HOST_LSP_RETAIN,
+		NVME_LOG_LID_TELEMETRY_HOST, NVME_LOG_LSI_NONE, NVME_CSI_NVM,
+		false, NVME_UUID_NONE, NVME_NSID_NONE,
+		NVME_LOG_PAGE_PDU_SIZE, len, offset, log, NULL);
 }
 
 /**
@@ -1533,23 +1523,10 @@ static inline int nvme_get_log_telemetry_host(nvme_link_t l, __u64 offset,
 static inline int nvme_get_log_telemetry_ctrl(nvme_link_t l, bool rae,
 			__u64 offset, __u32 len, void *log)
 {
-	struct nvme_get_log_args args = {
-		.lpo = offset,
-		.result = NULL,
-		.log = log,
-		.args_size = sizeof(args),
-		.timeout = NVME_DEFAULT_IOCTL_TIMEOUT,
-		.lid = NVME_LOG_LID_TELEMETRY_CTRL,
-		.len = len,
-		.nsid = NVME_NSID_NONE,
-		.csi = NVME_CSI_NVM,
-		.lsi = NVME_LOG_LSI_NONE,
-		.lsp = NVME_LOG_LSP_NONE,
-		.uuidx = NVME_UUID_NONE,
-		.rae = rae,
-		.ot = false,
-	};
-	return nvme_get_log_page(l, NVME_LOG_PAGE_PDU_SIZE, &args);
+	return nvme_get_log(l, rae, NVME_LOG_LSP_NONE,
+		NVME_LOG_LID_TELEMETRY_CTRL, NVME_LOG_LSI_NONE, NVME_CSI_NVM,
+		false, NVME_UUID_NONE, NVME_NSID_NONE,
+		NVME_LOG_PAGE_PDU_SIZE, len, offset, log, NULL);
 }
 
 /**
@@ -1571,23 +1548,10 @@ static inline int nvme_get_log_telemetry_ctrl(nvme_link_t l, bool rae,
 static inline int nvme_get_log_endurance_group(nvme_link_t l, __u16 endgid,
 			struct nvme_endurance_group_log *log)
 {
-	struct nvme_get_log_args args = {
-		.lpo = 0,
-		.result = NULL,
-		.log = log,
-		.args_size = sizeof(args),
-		.timeout = NVME_DEFAULT_IOCTL_TIMEOUT,
-		.lid = NVME_LOG_LID_ENDURANCE_GROUP,
-		.len = sizeof(*log),
-		.nsid = NVME_NSID_NONE,
-		.csi = NVME_CSI_NVM,
-		.lsi = endgid,
-		.lsp = NVME_LOG_LSP_NONE,
-		.uuidx = NVME_UUID_NONE,
-		.rae = false,
-		.ot = false,
-	};
-	return nvme_get_log_page(l, NVME_LOG_PAGE_PDU_SIZE, &args);
+	return nvme_get_log(l, false, NVME_LOG_LSP_NONE,
+		NVME_LOG_LID_ENDURANCE_GROUP, endgid, NVME_CSI_NVM,
+		false, NVME_UUID_NONE, NVME_NSID_NONE,
+		NVME_LOG_PAGE_PDU_SIZE, sizeof(*log), 0, log, NULL);
 }
 
 /**
@@ -1602,23 +1566,10 @@ static inline int nvme_get_log_endurance_group(nvme_link_t l, __u16 endgid,
 static inline int nvme_get_log_predictable_lat_nvmset(nvme_link_t l, __u16 nvmsetid,
 			struct nvme_nvmset_predictable_lat_log *log)
 {
-	struct nvme_get_log_args args = {
-		.lpo = 0,
-		.result = NULL,
-		.log = log,
-		.args_size = sizeof(args),
-		.timeout = NVME_DEFAULT_IOCTL_TIMEOUT,
-		.lid = NVME_LOG_LID_PREDICTABLE_LAT_NVMSET,
-		.len = sizeof(*log),
-		.nsid = NVME_NSID_NONE,
-		.csi = NVME_CSI_NVM,
-		.lsi = nvmsetid,
-		.lsp = NVME_LOG_LSP_NONE,
-		.uuidx = NVME_UUID_NONE,
-		.rae = false,
-		.ot = false,
-	};
-	return nvme_get_log_page(l, NVME_LOG_PAGE_PDU_SIZE, &args);
+	return nvme_get_log(l, false, NVME_LOG_LSP_NONE,
+		NVME_LOG_LID_PREDICTABLE_LAT_NVMSET, nvmsetid, NVME_CSI_NVM,
+		false, NVME_UUID_NONE, NVME_NSID_NONE,
+		NVME_LOG_PAGE_PDU_SIZE, sizeof(*log), 0, log, NULL);
 }
 
 /**
@@ -1635,23 +1586,10 @@ static inline int nvme_get_log_predictable_lat_nvmset(nvme_link_t l, __u16 nvmse
 static inline int nvme_get_log_predictable_lat_event(nvme_link_t l, bool rae,
 			__u32 offset, __u32 len, void *log)
 {
-	struct nvme_get_log_args args = {
-		.lpo = offset,
-		.result = NULL,
-		.log = log,
-		.args_size = sizeof(args),
-		.timeout = NVME_DEFAULT_IOCTL_TIMEOUT,
-		.lid = NVME_LOG_LID_PREDICTABLE_LAT_AGG,
-		.len = len,
-		.nsid = NVME_NSID_NONE,
-		.csi = NVME_CSI_NVM,
-		.lsi = NVME_LOG_LSI_NONE,
-		.lsp = NVME_LOG_LSP_NONE,
-		.uuidx = NVME_UUID_NONE,
-		.rae = rae,
-		.ot = false,
-	};
-	return nvme_get_log_page(l, NVME_LOG_PAGE_PDU_SIZE, &args);
+	return nvme_get_log(l, rae, NVME_LOG_LSP_NONE,
+		NVME_LOG_LID_PREDICTABLE_LAT_AGG, NVME_LOG_LSI_NONE, NVME_CSI_NVM,
+		false, NVME_UUID_NONE, NVME_NSID_NONE,
+		NVME_LOG_PAGE_PDU_SIZE, len, offset, log, NULL);
 }
 
 /**
@@ -1665,22 +1603,10 @@ static inline int nvme_get_log_predictable_lat_event(nvme_link_t l, bool rae,
 static inline int nvme_get_log_fdp_configurations(nvme_link_t l, __u16 egid,
 			__u32 offset, __u32 len, void *log)
 {
-	struct nvme_get_log_args args = {
-		.lpo = offset,
-		.result = NULL,
-		.log = log,
-		.args_size = sizeof(args),
-		.timeout = NVME_DEFAULT_IOCTL_TIMEOUT,
-		.lid = NVME_LOG_LID_FDP_CONFIGS,
-		.len = len,
-		.nsid = NVME_NSID_NONE,
-		.csi = NVME_CSI_NVM,
-		.lsi = egid,
-		.lsp = NVME_LOG_LSP_NONE,
-		.uuidx = NVME_UUID_NONE,
-	};
-
-	return nvme_get_log(l, &args);
+	return nvme_get_log(l, false, NVME_LOG_LSP_NONE,
+		NVME_LOG_LID_FDP_CONFIGS, egid, NVME_CSI_NVM,
+		false, NVME_UUID_NONE, NVME_NSID_NONE,
+		NVME_LOG_PAGE_PDU_SIZE, len, offset, log, NULL);
 }
 
 /**
@@ -1694,22 +1620,10 @@ static inline int nvme_get_log_fdp_configurations(nvme_link_t l, __u16 egid,
 static inline int nvme_get_log_reclaim_unit_handle_usage(nvme_link_t l, __u16 egid,
 			__u32 offset, __u32 len, void *log)
 {
-	struct nvme_get_log_args args = {
-		.lpo = offset,
-		.result = NULL,
-		.log = log,
-		.args_size = sizeof(args),
-		.timeout = NVME_DEFAULT_IOCTL_TIMEOUT,
-		.lid = NVME_LOG_LID_FDP_RUH_USAGE,
-		.len = len,
-		.nsid = NVME_NSID_NONE,
-		.csi = NVME_CSI_NVM,
-		.lsi = egid,
-		.lsp = NVME_LOG_LSP_NONE,
-		.uuidx = NVME_UUID_NONE,
-	};
-
-	return nvme_get_log(l, &args);
+	return nvme_get_log(l, false, NVME_LOG_LSP_NONE,
+		NVME_LOG_LID_FDP_RUH_USAGE, egid, NVME_CSI_NVM,
+		false, NVME_UUID_NONE, NVME_NSID_NONE,
+		NVME_LOG_PAGE_PDU_SIZE, len, offset, log, NULL);
 }
 
 /**
@@ -1722,22 +1636,10 @@ static inline int nvme_get_log_reclaim_unit_handle_usage(nvme_link_t l, __u16 eg
  */
 static inline int nvme_get_log_fdp_stats(nvme_link_t l, __u16 egid, __u32 offset, __u32 len, void *log)
 {
-	struct nvme_get_log_args args = {
-		.lpo = offset,
-		.result = NULL,
-		.log = log,
-		.args_size = sizeof(args),
-		.timeout = NVME_DEFAULT_IOCTL_TIMEOUT,
-		.lid = NVME_LOG_LID_FDP_STATS,
-		.len = len,
-		.nsid = NVME_NSID_NONE,
-		.csi = NVME_CSI_NVM,
-		.lsi = egid,
-		.lsp = NVME_LOG_LSP_NONE,
-		.uuidx = NVME_UUID_NONE,
-	};
-
-	return nvme_get_log(l, &args);
+	return nvme_get_log(l, false, NVME_LOG_LSP_NONE,
+		NVME_LOG_LID_FDP_STATS, egid, NVME_CSI_NVM,
+		false, NVME_UUID_NONE, NVME_NSID_NONE,
+		NVME_LOG_PAGE_PDU_SIZE, len, offset, log, NULL);
 }
 
 /**
@@ -1752,22 +1654,10 @@ static inline int nvme_get_log_fdp_stats(nvme_link_t l, __u16 egid, __u32 offset
 static inline int nvme_get_log_fdp_events(nvme_link_t l, __u16 egid, bool host_events, __u32 offset,
 		__u32 len, void *log)
 {
-	struct nvme_get_log_args args = {
-		.lpo = offset,
-		.result = NULL,
-		.log = log,
-		.args_size = sizeof(args),
-		.timeout = NVME_DEFAULT_IOCTL_TIMEOUT,
-		.lid = NVME_LOG_LID_FDP_EVENTS,
-		.len = len,
-		.nsid = NVME_NSID_NONE,
-		.csi = NVME_CSI_NVM,
-		.lsi = egid,
-		.lsp = (__u8)(host_events ? 0x1 : 0x0),
-		.uuidx = NVME_UUID_NONE,
-	};
-
-	return nvme_get_log(l, &args);
+	return nvme_get_log(l, false, (__u8)(host_events ? 0x1 : 0x0),
+		NVME_LOG_LID_FDP_EVENTS, egid, NVME_CSI_NVM,
+		false, NVME_UUID_NONE, NVME_NSID_NONE,
+		NVME_LOG_PAGE_PDU_SIZE, len, offset, log, NULL);
 }
 
 /**
@@ -1791,23 +1681,10 @@ static inline int nvme_get_log_fdp_events(nvme_link_t l, __u16 egid, bool host_e
 static inline int nvme_get_log_ana(nvme_link_t l, enum nvme_log_ana_lsp lsp, bool rae,
 				   __u64 offset, __u32 len, void *log)
 {
-	struct nvme_get_log_args args = {
-		.lpo = offset,
-		.result = NULL,
-		.log = log,
-		.args_size = sizeof(args),
-		.timeout = NVME_DEFAULT_IOCTL_TIMEOUT,
-		.lid = NVME_LOG_LID_ANA,
-		.len = len,
-		.nsid = NVME_NSID_NONE,
-		.csi = NVME_CSI_NVM,
-		.lsi = NVME_LOG_LSI_NONE,
-		.lsp = (__u8)lsp,
-		.uuidx = NVME_UUID_NONE,
-		.rae = rae,
-		.ot = false,
-	};
-	return nvme_get_log_page(l, NVME_LOG_PAGE_PDU_SIZE, &args);
+	return nvme_get_log(l, rae, (__u8)lsp,
+		NVME_LOG_LID_ANA, NVME_LOG_LSI_NONE, NVME_CSI_NVM,
+		false, NVME_UUID_NONE, NVME_NSID_NONE,
+		NVME_LOG_PAGE_PDU_SIZE, len, offset, log, NULL);
 }
 
 /**
@@ -1866,23 +1743,10 @@ int nvme_get_ana_log_atomic(nvme_link_t l, bool rgo, bool rae, unsigned int retr
 static inline int nvme_get_log_lba_status(nvme_link_t l, bool rae,
 			__u64 offset, __u32 len, void *log)
 {
-	struct nvme_get_log_args args = {
-		.lpo = offset,
-		.result = NULL,
-		.log = log,
-		.args_size = sizeof(args),
-		.timeout = NVME_DEFAULT_IOCTL_TIMEOUT,
-		.lid = NVME_LOG_LID_LBA_STATUS,
-		.len = len,
-		.nsid = NVME_NSID_NONE,
-		.csi = NVME_CSI_NVM,
-		.lsi = NVME_LOG_LSI_NONE,
-		.lsp = NVME_LOG_LSP_NONE,
-		.uuidx = NVME_UUID_NONE,
-		.rae = rae,
-		.ot = false,
-	};
-	return nvme_get_log_page(l, NVME_LOG_PAGE_PDU_SIZE, &args);
+	return nvme_get_log(l, rae, NVME_LOG_LSP_NONE,
+		NVME_LOG_LID_LBA_STATUS, NVME_LOG_LSI_NONE, NVME_CSI_NVM,
+		false, NVME_UUID_NONE, NVME_NSID_NONE,
+		NVME_LOG_PAGE_PDU_SIZE, len, offset, log, NULL);
 }
 
 /**
@@ -1899,23 +1763,10 @@ static inline int nvme_get_log_lba_status(nvme_link_t l, bool rae,
 static inline int nvme_get_log_endurance_grp_evt(nvme_link_t l, bool rae,
 			__u32 offset, __u32 len, void *log)
 {
-	struct nvme_get_log_args args = {
-		.lpo = offset,
-		.result = NULL,
-		.log = log,
-		.args_size = sizeof(args),
-		.timeout = NVME_DEFAULT_IOCTL_TIMEOUT,
-		.lid = NVME_LOG_LID_ENDURANCE_GRP_EVT,
-		.len = len,
-		.nsid = NVME_NSID_NONE,
-		.csi = NVME_CSI_NVM,
-		.lsi = NVME_LOG_LSI_NONE,
-		.lsp = NVME_LOG_LSP_NONE,
-		.uuidx = NVME_UUID_NONE,
-		.rae = rae,
-		.ot = false,
-	};
-	return nvme_get_log_page(l, NVME_LOG_PAGE_PDU_SIZE, &args);
+	return nvme_get_log(l, rae, NVME_LOG_LSP_NONE,
+		NVME_LOG_LID_ENDURANCE_GRP_EVT, NVME_LOG_LSI_NONE, NVME_CSI_NVM,
+		false, NVME_UUID_NONE, NVME_NSID_NONE,
+		NVME_LOG_PAGE_PDU_SIZE, len, offset, log, NULL);
 }
 
 /**
@@ -1965,23 +1816,10 @@ static inline int nvme_get_log_mi_cmd_supported_effects(nvme_link_t l, bool rae,
 static inline int nvme_get_log_boot_partition(nvme_link_t l, bool rae,
 			__u8 lsp, __u32 len, struct nvme_boot_partition *part)
 {
-	struct nvme_get_log_args args = {
-		.lpo = 0,
-		.result = NULL,
-		.log = part,
-		.args_size = sizeof(args),
-		.timeout = NVME_DEFAULT_IOCTL_TIMEOUT,
-		.lid = NVME_LOG_LID_BOOT_PARTITION,
-		.len = len,
-		.nsid = NVME_NSID_NONE,
-		.csi = NVME_CSI_NVM,
-		.lsi = NVME_LOG_LSI_NONE,
-		.lsp = lsp,
-		.uuidx = NVME_UUID_NONE,
-		.rae = rae,
-		.ot = false,
-	};
-	return nvme_get_log_page(l, NVME_LOG_PAGE_PDU_SIZE, &args);
+	return nvme_get_log(l, rae, lsp,
+		NVME_LOG_LID_BOOT_PARTITION, NVME_LOG_LSI_NONE, NVME_CSI_NVM,
+		false, NVME_UUID_NONE, NVME_NSID_NONE,
+		NVME_LOG_PAGE_PDU_SIZE, len, 0, part, NULL);
 }
 
 /**
@@ -2048,23 +1886,10 @@ static inline int nvme_get_log_mgmt_addr_list(nvme_link_t l, __u32 len,
 static inline int nvme_get_log_phy_rx_eom(nvme_link_t l, __u8 lsp, __u16 controller,
 				__u32 len, struct nvme_phy_rx_eom_log *log)
 {
-	struct nvme_get_log_args args = {
-		.lpo = 0,
-		.result = NULL,
-		.log = log,
-		.args_size = sizeof(args),
-		.timeout = NVME_DEFAULT_IOCTL_TIMEOUT,
-		.lid = NVME_LOG_LID_PHY_RX_EOM,
-		.len = len,
-		.nsid = NVME_NSID_NONE,
-		.csi = NVME_CSI_NVM,
-		.lsi = controller,
-		.lsp = lsp,
-		.uuidx = NVME_UUID_NONE,
-		.rae = false,
-		.ot = false,
-	};
-	return nvme_get_log_page(l, NVME_LOG_PAGE_PDU_SIZE, &args);
+	return nvme_get_log(l, false, lsp,
+		NVME_LOG_LID_PHY_RX_EOM, controller, NVME_CSI_NVM,
+		false, NVME_UUID_NONE, NVME_NSID_NONE,
+		NVME_LOG_PAGE_PDU_SIZE, len, 0, log, NULL);
 }
 
 /**
@@ -2081,24 +1906,10 @@ static inline int nvme_get_log_phy_rx_eom(nvme_link_t l, __u8 lsp, __u16 control
 static inline int nvme_get_log_reachability_groups(nvme_link_t l, bool rgo, bool rae, __u32 len,
 						   struct nvme_reachability_groups_log *log)
 {
-	struct nvme_get_log_args args = {
-		.lpo = 0,
-		.result = NULL,
-		.log = log,
-		.args_size = sizeof(args),
-		.timeout = NVME_DEFAULT_IOCTL_TIMEOUT,
-		.lid = NVME_LOG_LID_REACHABILITY_GROUPS,
-		.len = len,
-		.nsid = NVME_NSID_ALL,
-		.csi = NVME_CSI_NVM,
-		.lsi = NVME_LOG_LSI_NONE,
-		.lsp = rgo,
-		.uuidx = NVME_LOG_LSP_NONE,
-		.rae = rae,
-		.ot = false,
-	};
-
-	return nvme_get_log_page(l, NVME_LOG_PAGE_PDU_SIZE, &args);
+	return nvme_get_log(l, rae, (__u8)rgo,
+		NVME_LOG_LID_REACHABILITY_GROUPS, NVME_LOG_LSI_NONE, NVME_CSI_NVM,
+		false, NVME_UUID_NONE, NVME_NSID_ALL,
+		NVME_LOG_PAGE_PDU_SIZE, len, 0, log, NULL);
 }
 
 /**
@@ -2115,24 +1926,10 @@ static inline int nvme_get_log_reachability_groups(nvme_link_t l, bool rgo, bool
 static inline int nvme_get_log_reachability_associations(nvme_link_t l, bool rao, bool rae, __u32 len,
 	struct nvme_reachability_associations_log *log)
 {
-	struct nvme_get_log_args args = {
-		.lpo = 0,
-		.result = NULL,
-		.log = log,
-		.args_size = sizeof(args),
-		.timeout = NVME_DEFAULT_IOCTL_TIMEOUT,
-		.lid = NVME_LOG_LID_REACHABILITY_ASSOCIATIONS,
-		.len = len,
-		.nsid = NVME_NSID_ALL,
-		.csi = NVME_CSI_NVM,
-		.lsi = NVME_LOG_LSI_NONE,
-		.lsp = rao,
-		.uuidx = NVME_LOG_LSP_NONE,
-		.rae = rae,
-		.ot = false,
-	};
-
-	return nvme_get_log_page(l, NVME_LOG_PAGE_PDU_SIZE, &args);
+	return nvme_get_log(l, rae, (__u8)rao,
+		NVME_LOG_LID_REACHABILITY_ASSOCIATIONS, NVME_LOG_LSI_NONE, NVME_CSI_NVM,
+		false, NVME_UUID_NONE, NVME_NSID_ALL,
+		NVME_LOG_PAGE_PDU_SIZE, len, 0, log, NULL);
 }
 
 /**
@@ -2169,23 +1966,10 @@ static inline int nvme_get_log_changed_alloc_ns_list(nvme_link_t l, bool rae, __
 static inline int nvme_get_log_discovery(nvme_link_t l, bool rae,
 			__u32 offset, __u32 len, void *log)
 {
-	struct nvme_get_log_args args = {
-		.lpo = offset,
-		.result = NULL,
-		.log = log,
-		.args_size = sizeof(args),
-		.timeout = NVME_DEFAULT_IOCTL_TIMEOUT,
-		.lid = NVME_LOG_LID_DISCOVER,
-		.len = len,
-		.nsid = NVME_NSID_NONE,
-		.csi = NVME_CSI_NVM,
-		.lsi = NVME_LOG_LSI_NONE,
-		.lsp = NVME_LOG_LSP_NONE,
-		.uuidx = NVME_UUID_NONE,
-		.rae = rae,
-		.ot = false,
-	};
-	return nvme_get_log_page(l, NVME_LOG_PAGE_PDU_SIZE, &args);
+	return nvme_get_log(l, rae, NVME_LOG_LSP_NONE,
+		NVME_LOG_LID_DISCOVER, NVME_LOG_LSI_NONE, NVME_CSI_NVM,
+		false, NVME_UUID_NONE, NVME_NSID_NONE,
+		NVME_LOG_PAGE_PDU_SIZE, len, offset, log, NULL);
 }
 
 /**
@@ -2202,24 +1986,10 @@ static inline int nvme_get_log_discovery(nvme_link_t l, bool rae,
 static inline int nvme_get_log_host_discover(nvme_link_t l, bool allhoste, bool rae, __u32 len,
 					     struct nvme_host_discover_log *log)
 {
-	struct nvme_get_log_args args = {
-		.lpo = 0,
-		.result = NULL,
-		.log = log,
-		.args_size = sizeof(args),
-		.timeout = NVME_DEFAULT_IOCTL_TIMEOUT,
-		.lid = NVME_LOG_LID_HOST_DISCOVER,
-		.len = len,
-		.nsid = NVME_NSID_ALL,
-		.csi = NVME_CSI_NVM,
-		.lsi = NVME_LOG_LSI_NONE,
-		.lsp = allhoste,
-		.uuidx = NVME_LOG_LSP_NONE,
-		.rae = rae,
-		.ot = false,
-	};
-
-	return nvme_get_log_page(l, NVME_LOG_PAGE_PDU_SIZE, &args);
+	return nvme_get_log(l, rae, (__u8)allhoste,
+		NVME_LOG_LID_HOST_DISCOVER, NVME_LOG_LSI_NONE, NVME_CSI_NVM,
+		false, NVME_UUID_NONE, NVME_NSID_ALL,
+		NVME_LOG_PAGE_PDU_SIZE, len, 0, log, NULL);
 }
 
 /**
@@ -2266,23 +2036,10 @@ static inline int nvme_get_log_pull_model_ddc_req(nvme_link_t l, bool rae, __u32
 static inline int nvme_get_log_media_unit_stat(nvme_link_t l, __u16 domid,
 			struct nvme_media_unit_stat_log *mus)
 {
-	struct nvme_get_log_args args = {
-		.lpo = 0,
-		.result = NULL,
-		.log = mus,
-		.args_size = sizeof(args),
-		.timeout = NVME_DEFAULT_IOCTL_TIMEOUT,
-		.lid = NVME_LOG_LID_MEDIA_UNIT_STATUS,
-		.len = sizeof(*mus),
-		.nsid = NVME_NSID_NONE,
-		.csi = NVME_CSI_NVM,
-		.lsi = domid,
-		.lsp = NVME_LOG_LSP_NONE,
-		.uuidx = NVME_UUID_NONE,
-		.rae = false,
-		.ot = false,
-	};
-	return nvme_get_log_page(l, NVME_LOG_PAGE_PDU_SIZE, &args);
+	return nvme_get_log(l, false, NVME_LOG_LSP_NONE,
+		NVME_LOG_LID_MEDIA_UNIT_STATUS, domid, NVME_CSI_NVM,
+		false, NVME_UUID_NONE, NVME_NSID_NONE,
+		NVME_LOG_PAGE_PDU_SIZE, sizeof(*mus), 0, mus, NULL);
 }
 
 /**
@@ -2297,23 +2054,10 @@ static inline int nvme_get_log_media_unit_stat(nvme_link_t l, __u16 domid,
 static inline int nvme_get_log_support_cap_config_list(nvme_link_t l, __u16 domid,
 			struct nvme_supported_cap_config_list_log *cap)
 {
-	struct nvme_get_log_args args = {
-		.lpo = 0,
-		.result = NULL,
-		.log = cap,
-		.args_size = sizeof(args),
-		.timeout = NVME_DEFAULT_IOCTL_TIMEOUT,
-		.lid = NVME_LOG_LID_SUPPORTED_CAP_CONFIG_LIST,
-		.len = sizeof(*cap),
-		.nsid = NVME_NSID_NONE,
-		.csi = NVME_CSI_NVM,
-		.lsi = domid,
-		.lsp = NVME_LOG_LSP_NONE,
-		.uuidx = NVME_UUID_NONE,
-		.rae = false,
-		.ot = false,
-	};
-	return nvme_get_log_page(l, NVME_LOG_PAGE_PDU_SIZE, &args);
+	return nvme_get_log(l, false, NVME_LOG_LSP_NONE,
+		NVME_LOG_LID_SUPPORTED_CAP_CONFIG_LIST, domid, NVME_CSI_NVM,
+		false, NVME_UUID_NONE, NVME_NSID_NONE,
+		NVME_LOG_PAGE_PDU_SIZE, sizeof(*cap), 0, cap, NULL);
 }
 
 /**
@@ -2366,23 +2110,10 @@ static inline int nvme_get_log_sanitize(nvme_link_t l, bool rae,
 static inline int nvme_get_log_zns_changed_zones(nvme_link_t l, __u32 nsid, bool rae,
 			struct nvme_zns_changed_zone_log *log)
 {
-	struct nvme_get_log_args args = {
-		.lpo = 0,
-		.result = NULL,
-		.log = log,
-		.args_size = sizeof(args),
-		.timeout = NVME_DEFAULT_IOCTL_TIMEOUT,
-		.lid = NVME_LOG_LID_ZNS_CHANGED_ZONES,
-		.len = sizeof(*log),
-		.nsid = nsid,
-		.csi = NVME_CSI_ZNS,
-		.lsi = NVME_LOG_LSI_NONE,
-		.lsp = NVME_LOG_LSP_NONE,
-		.uuidx = NVME_UUID_NONE,
-		.rae = rae,
-		.ot = false,
-	};
-	return nvme_get_log_page(l, NVME_LOG_PAGE_PDU_SIZE, &args);
+	return nvme_get_log(l, rae, NVME_LOG_LSP_NONE,
+		NVME_LOG_LID_ZNS_CHANGED_ZONES, NVME_LOG_LSI_NONE, NVME_CSI_ZNS,
+		false, NVME_UUID_NONE, nsid,
+		NVME_LOG_PAGE_PDU_SIZE, sizeof(*log), 0, log, NULL);
 }
 
 /**
@@ -2399,23 +2130,10 @@ static inline int nvme_get_log_persistent_event(nvme_link_t l,
 			enum nvme_pevent_log_action action,
 			__u32 size, void *pevent_log)
 {
-	struct nvme_get_log_args args = {
-		.lpo = 0,
-		.result = NULL,
-		.log = pevent_log,
-		.args_size = sizeof(args),
-		.timeout = NVME_DEFAULT_IOCTL_TIMEOUT,
-		.lid = NVME_LOG_LID_PERSISTENT_EVENT,
-		.len = size,
-		.nsid = NVME_NSID_ALL,
-		.csi = NVME_CSI_NVM,
-		.lsi = NVME_LOG_LSI_NONE,
-		.lsp = (__u8)action,
-		.uuidx = NVME_UUID_NONE,
-		.rae = false,
-		.ot = false,
-	};
-	return nvme_get_log_page(l, NVME_LOG_PAGE_PDU_SIZE, &args);
+	return nvme_get_log(l, false, (__u8)action,
+		NVME_LOG_LID_PERSISTENT_EVENT, NVME_LOG_LSI_NONE, NVME_CSI_NVM,
+		false, NVME_UUID_NONE, NVME_NSID_ALL,
+		NVME_LOG_PAGE_PDU_SIZE, size, 0, pevent_log, NULL);
 }
 
 /**
@@ -2430,23 +2148,10 @@ static inline int nvme_get_log_persistent_event(nvme_link_t l,
 static inline int nvme_get_log_lockdown(nvme_link_t l,
 			__u8 cnscp, struct nvme_lockdown_log *lockdown_log)
 {
-	struct nvme_get_log_args args = {
-		.lpo = 0,
-		.result = NULL,
-		.log = lockdown_log,
-		.args_size = sizeof(args),
-		.timeout = NVME_DEFAULT_IOCTL_TIMEOUT,
-		.lid = NVME_LOG_LID_CMD_AND_FEAT_LOCKDOWN,
-		.len = sizeof(*lockdown_log),
-		.nsid = NVME_NSID_ALL,
-		.csi = NVME_CSI_NVM,
-		.lsi = NVME_LOG_LSI_NONE,
-		.lsp = cnscp,
-		.uuidx = NVME_UUID_NONE,
-		.rae = false,
-		.ot = false,
-	};
-	return nvme_get_log_page(l, NVME_LOG_PAGE_PDU_SIZE, &args);
+	return nvme_get_log(l, false, cnscp,
+		NVME_LOG_LID_CMD_AND_FEAT_LOCKDOWN, NVME_LOG_LSI_NONE, NVME_CSI_NVM,
+		false, NVME_UUID_NONE, NVME_NSID_ALL,
+		NVME_LOG_PAGE_PDU_SIZE, sizeof(*lockdown_log), 0, lockdown_log, NULL);
 }
 
 /**
