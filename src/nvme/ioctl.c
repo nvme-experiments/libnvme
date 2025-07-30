@@ -676,49 +676,22 @@ int nvme_get_ana_log_atomic(nvme_link_t l, bool rgo, bool rae, unsigned int retr
 	return -EAGAIN;
 }
 
-int nvme_set_features(nvme_link_t l, struct nvme_set_features_args *args)
-{
-	__u32 cdw10 = NVME_SET(args->fid, FEATURES_CDW10_FID) |
-			NVME_SET(!!args->save, SET_FEATURES_CDW10_SAVE);
-	__u32 cdw14 = NVME_SET(args->uuidx, FEATURES_CDW14_UUID);
-
-	struct nvme_passthru_cmd cmd = {
-		.opcode		= nvme_admin_set_features,
-		.nsid		= args->nsid,
-		.addr		= (__u64)(uintptr_t)args->data,
-		.data_len	= args->data_len,
-		.cdw10		= cdw10,
-		.cdw11		= args->cdw11,
-		.cdw12		= args->cdw12,
-		.cdw13		= args->cdw13,
-		.cdw14		= cdw14,
-		.cdw15		= args->cdw15,
-		.timeout_ms	= args->timeout,
-	};
-	if (args->args_size < sizeof(*args))
-		return -EINVAL;
-
-	return nvme_submit_admin_passthru(l, &cmd, args->result);
-}
-
 static int __nvme_set_features(nvme_link_t l, __u8 fid, __u32 cdw11, bool save,
 			       __u32 *result)
 {
-	struct nvme_set_features_args args = {
-		.args_size = sizeof(args),
-		.fid = fid,
-		.nsid = NVME_NSID_NONE,
-		.cdw11 = cdw11,
-		.cdw12 = 0,
-		.save = save,
-		.uuidx = NVME_UUID_NONE,
-		.cdw15 = 0,
-		.data_len = 0,
-		.data = NULL,
-		.timeout = NVME_DEFAULT_IOCTL_TIMEOUT,
-		.result = result,
-	};
-	return nvme_set_features(l, &args);
+	return nvme_set_features(l,
+			         result,
+			         NULL,
+			         NVME_DEFAULT_IOCTL_TIMEOUT,
+			         NVME_NSID_NONE,
+			         cdw11,
+			         0,
+			         0,
+			         0,
+			         0,
+			         save,
+			         NVME_UUID_NONE,
+			         fid);
 }
 
 int nvme_set_features_arbitration(nvme_link_t l, __u8 ab, __u8 lpw, __u8 mpw,
@@ -856,65 +829,55 @@ int nvme_set_features_nopsc(nvme_link_t l, bool noppme, bool save, __u32 *result
 int nvme_set_features_rrl(nvme_link_t l, __u8 rrl, __u16 nvmsetid,
 			  bool save, __u32 *result)
 {
-	struct nvme_set_features_args args = {
-		.args_size = sizeof(args),
-		.fid = NVME_FEAT_FID_RRL,
-		.nsid = NVME_NSID_NONE,
-		.cdw11 = nvmsetid,
-		.cdw12 = rrl,
-		.save = save,
-		.uuidx = NVME_UUID_NONE,
-		.cdw15 = 0,
-		.data_len = 0,
-		.data = NULL,
-		.timeout = NVME_DEFAULT_IOCTL_TIMEOUT,
-		.result = result,
-	};
-
-	return nvme_set_features(l, &args);
+	return nvme_set_features(l,
+			         result,
+			         NULL,
+			         NVME_DEFAULT_IOCTL_TIMEOUT,
+			         NVME_NSID_NONE,
+			         nvmsetid,
+			         rrl,
+			         0,
+			         0,
+			         0,
+			         save,
+			         NVME_UUID_NONE,
+			         NVME_FEAT_FID_RRL);
 }
 
 int nvme_set_features_plm_config(nvme_link_t l, bool plm, __u16 nvmsetid, bool save,
 				 struct nvme_plm_config *data, __u32 *result)
 {
-	struct nvme_set_features_args args = {
-		.args_size = sizeof(args),
-		.fid = NVME_FEAT_FID_PLM_CONFIG,
-		.nsid = NVME_NSID_NONE,
-		.cdw11 = nvmsetid,
-		.cdw12 = !!plm,
-		.save = save,
-		.uuidx = NVME_UUID_NONE,
-		.cdw15 = 0,
-		.data_len = sizeof(*data),
-		.data = data,
-		.timeout = NVME_DEFAULT_IOCTL_TIMEOUT,
-		.result = result,
-	};
-
-	return nvme_set_features(l, &args);
+	return nvme_set_features(l,
+			         result,
+			         data,
+			         NVME_DEFAULT_IOCTL_TIMEOUT,
+			         NVME_NSID_NONE,
+			         nvmsetid,
+			         !!plm,
+			         0,
+			         0,
+			         sizeof(*data),
+			         save,
+			         NVME_UUID_NONE,
+			         NVME_FEAT_FID_PLM_CONFIG);
 }
 
 int nvme_set_features_plm_window(nvme_link_t l, enum nvme_feat_plm_window_select sel,
 				 __u16 nvmsetid, bool save, __u32 *result)
 {
-	__u32 cdw12 = NVME_SET(sel, FEAT_PLMW_WS);
-	struct nvme_set_features_args args = {
-		.args_size = sizeof(args),
-		.fid = NVME_FEAT_FID_PLM_WINDOW,
-		.nsid = NVME_NSID_NONE,
-		.cdw11 = nvmsetid,
-		.cdw12 = cdw12,
-		.save = save,
-		.uuidx = NVME_UUID_NONE,
-		.cdw15 = 0,
-		.data_len = 0,
-		.data = NULL,
-		.timeout = NVME_DEFAULT_IOCTL_TIMEOUT,
-		.result = result,
-	};
-
-	return nvme_set_features(l, &args);
+	return nvme_set_features(l,
+			         result,
+			         NULL,
+			         NVME_DEFAULT_IOCTL_TIMEOUT,
+			         NVME_NSID_NONE,
+			         nvmsetid,
+			         NVME_SET(sel, FEAT_PLMW_WS),
+			         0,
+			         0,
+			         0,
+			         save,
+			         NVME_UUID_NONE,
+			         NVME_FEAT_FID_PLM_WINDOW);
 }
 
 int nvme_set_features_lba_sts_interval(nvme_link_t l, __u16 lsiri, __u16 lsipi,
@@ -2389,19 +2352,19 @@ int nvme_lm_migration_recv(nvme_link_t l, struct nvme_lm_migration_recv_args *ar
 int nvme_lm_set_features_ctrl_data_queue(nvme_link_t l, __u16 cdqid, __u32 hp, __u32 tpt, bool etpt,
 					 __u32 *result)
 {
-	struct nvme_set_features_args args = {
-		.args_size	= sizeof(args),
-		.fid		= NVME_FEAT_FID_CTRL_DATA_QUEUE,
-		.nsid		= NVME_NSID_NONE,
-		.cdw11		= cdqid | NVME_SET(etpt, LM_CTRL_DATA_QUEUE_ETPT),
-		.cdw12		= hp,
-		.cdw13		= tpt,
-		.save		= false,
-		.timeout	= NVME_DEFAULT_IOCTL_TIMEOUT,
-		.result		= result,
-	};
-
-	return nvme_set_features(l, &args);
+	return nvme_set_features(l,
+			         result,
+			         NULL,
+			         NVME_DEFAULT_IOCTL_TIMEOUT,
+			         NVME_NSID_NONE,
+			         cdqid | NVME_SET(etpt, LM_CTRL_DATA_QUEUE_ETPT),
+			         hp,
+			         tpt,
+			         0,
+			         0,
+			         false,
+			         NVME_UUID_NONE,
+			         NVME_FEAT_FID_CTRL_DATA_QUEUE);
 }
 
 int nvme_lm_get_features_ctrl_data_queue(nvme_link_t l, __u16 cdqid,

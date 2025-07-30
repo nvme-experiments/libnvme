@@ -28,21 +28,6 @@ static void test_set_features(void)
 {
 	uint32_t result = 0;
 	uint8_t data[256];
-	struct nvme_set_features_args args = {
-		.result = &result,
-		.data = data,
-		.args_size = sizeof(args),
-		.timeout = TEST_TIMEOUT,
-		.nsid = TEST_NSID,
-		.cdw11 = TEST_CDW11,
-		.cdw12 = TEST_CDW12,
-		.cdw13 = TEST_CDW13,
-		.cdw15 = TEST_CDW15,
-		.data_len = sizeof(data),
-		.save = true,
-		.uuidx = TEST_UUIDX,
-		.fid = TEST_FID,
-	};
 	struct mock_cmd mock_admin_cmd = {
 		.opcode = nvme_admin_set_features,
 		.nsid = TEST_NSID,
@@ -62,7 +47,19 @@ static void test_set_features(void)
 
 	arbitrary(data, sizeof(data));
 	set_mock_admin_cmds(&mock_admin_cmd, 1);
-	err = nvme_set_features(test_link, &args);
+	err = nvme_set_features(test_link,
+			        &result,
+			        data,
+			        TEST_TIMEOUT,
+			        TEST_NSID,
+			        TEST_CDW11,
+			        TEST_CDW12,
+			        TEST_CDW13,
+			        TEST_CDW15,
+			        sizeof(data),
+			        true,
+			        TEST_UUIDX,
+			        TEST_FID);
 	end_mock_cmds();
 	check(err == 0, "set features returned error %d", err);
 	check(result == TEST_RESULT,

@@ -2559,12 +2559,56 @@ static inline int nvme_get_log_lockdown(nvme_link_t l,
 /**
  * nvme_set_features() - Set a feature attribute
  * @l:		Link handle
- * @args:	&struct nvme_set_features_args argument structure
+ * @result:	The command completion result from CQE dword0
+ * @data:	User address of feature data, if applicable
+ * @timeout:	Timeout in ms
+ * @nsid:	Namespace ID, if applicable
+ * @cdw11:	Value to set the feature to
+ * @cdw12:	Feature specific command dword12 field
+ * @cdw13:	Feature specific command dword13 field
+ * @cdw15:	Feature specific command dword15 field
+ * @data_len:	Length of feature data, if applicable, in bytes
+ * @save:	Save value across power states
+ * @uuidx:	UUID Index for differentiating vendor specific encoding
+ * @fid:	Feature identifier
  *
  * Return: The nvme command status if a response was received (see
  * &enum nvme_status_field) or -1 with errno set otherwise.
  */
-int nvme_set_features(nvme_link_t l, struct nvme_set_features_args *args);
+static inline int nvme_set_features(nvme_link_t l,
+				     __u32 *result,
+				     void *data,
+				     __u32 timeout,
+				     __u32 nsid,
+				     __u32 cdw11,
+				     __u32 cdw12,
+				     __u32 cdw13,
+				     __u32 cdw15,
+				     __u32 data_len,
+				     bool save,
+				     __u8 uuidx,
+				     __u8 fid)
+{
+	__u32 cdw10 = NVME_SET(fid, FEATURES_CDW10_FID) |
+			NVME_SET(!!save, SET_FEATURES_CDW10_SAVE);
+	__u32 cdw14 = NVME_SET(uuidx, FEATURES_CDW14_UUID);
+
+	struct nvme_passthru_cmd cmd = {
+		.opcode		= nvme_admin_set_features,
+		.nsid		= nsid,
+		.addr		= (__u64)(uintptr_t)data,
+		.data_len	= data_len,
+		.cdw10		= cdw10,
+		.cdw11		= cdw11,
+		.cdw12		= cdw12,
+		.cdw13		= cdw13,
+		.cdw14		= cdw14,
+		.cdw15		= cdw15,
+		.timeout_ms	= timeout,
+	};
+
+	return nvme_submit_admin_passthru(l, &cmd, result);
+}
 
 /**
  * nvme_set_features_data() - Helper function for @nvme_set_features()
@@ -2584,22 +2628,19 @@ static inline int nvme_set_features_data(nvme_link_t l, __u8 fid, __u32 nsid,
 			__u32 cdw11, bool save, __u32 data_len, void *data,
 			__u32 *result)
 {
-	struct nvme_set_features_args args = {
-		.result = result,
-		.data = data,
-		.args_size = sizeof(args),
-		.timeout = NVME_DEFAULT_IOCTL_TIMEOUT,
-		.nsid = nsid,
-		.cdw11 = cdw11,
-		.cdw12 = 0,
-		.cdw13 = 0,
-		.cdw15 = 0,
-		.data_len = data_len,
-		.save = save,
-		.uuidx = NVME_UUID_NONE,
-		.fid = fid,
-	};
-	return nvme_set_features(l, &args);
+	return nvme_set_features(l,
+			         result,
+			         data,
+			         NVME_DEFAULT_IOCTL_TIMEOUT,
+			         nsid,
+			         cdw11,
+			         0,
+			         0,
+			         0,
+			         data_len,
+			         save,
+			         NVME_UUID_NONE,
+			         fid);
 }
 
 /**
