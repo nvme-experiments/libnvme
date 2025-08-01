@@ -1707,7 +1707,7 @@ static int test_admin_format_nvm_cb(struct nvme_mi_ep *ep,
 				    struct nvme_mi_resp *resp,
 				    void *data)
 {
-	struct nvme_format_nvm_args *args = data;
+	struct format_data *args = data;
 	__u8 *rq_hdr;
 	__u32 nsid;
 
@@ -1723,7 +1723,7 @@ static int test_admin_format_nvm_cb(struct nvme_mi_ep *ep,
 	     | rq_hdr[8];
 	assert(nsid == args->nsid);
 
-	assert(((rq_hdr[44] >> 0) & 0xf) == args->lbaf);
+	assert(((rq_hdr[44] >> 0) & 0xf) == args->lbafl);
 	assert(((rq_hdr[44] >> 4) & 0x1) == args->mset);
 	assert(((rq_hdr[44] >> 5) & 0x7) == args->pi);
 
@@ -1738,7 +1738,7 @@ static int test_admin_format_nvm_cb(struct nvme_mi_ep *ep,
 
 static void test_admin_format_nvm(struct nvme_mi_ep *ep)
 {
-	struct nvme_format_nvm_args args = { 0 };
+	struct format_data args = { 0 };
 	nvme_link_t link;
 	int rc;
 
@@ -1749,16 +1749,17 @@ static void test_admin_format_nvm(struct nvme_mi_ep *ep)
 
 	/* ensure we have the cdw0 bit field encoding correct, by testing twice
 	 * with inverted bit values */
-	args.args_size = sizeof(args);
 	args.nsid = 0x04030201;
 	args.lbafu = 0x3;
 	args.ses = 0x0;
 	args.pil = 0x1;
 	args.pi = 0x0;
 	args.mset = 0x1;
-	args.lbaf = 0x0;
+	args.lbafl = 0x0;
 
-	rc = nvme_format_nvm(link, &args);
+	rc = nvme_format_nvm(link, args.nsid, args.lbafl, args.mset,
+			     args.pi, args.pil, args.ses,
+			     args.lbafu, NULL);
 	assert(!rc);
 
 	args.nsid = ~args.nsid;
@@ -1767,9 +1768,11 @@ static void test_admin_format_nvm(struct nvme_mi_ep *ep)
 	args.pil = 0x0;
 	args.pi = 0x7;
 	args.mset = 0x0;
-	args.lbaf = 0xf;
+	args.lbafl = 0xf;
 
-	rc = nvme_format_nvm(link, &args);
+	rc = nvme_format_nvm(link, args.nsid, args.lbafl, args.mset,
+			     args.pi, args.pil, args.ses,
+			     args.lbafu, NULL);
 	assert(!rc);
 }
 
