@@ -1016,7 +1016,7 @@ static void test_verify(void)
 	__u32 result = 0;
 	__u64 slba = 0xffffffffffffffff;
 	__u16 nlb = 0xffff;
-	__u16 control = 0xffff;
+	__u16 control = 0xfd0f;
 	__u8 dsm = 0xff;
 	__u16 dspec = 0xffff;
 	__u16 apptag = 0xffff;
