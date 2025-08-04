@@ -383,8 +383,8 @@ enum nvme_cmd_dword_fields {
 								   NVME_VAL(NVM_CDW13_DSM_SEQREQ) |
 								   NVME_VAL(NVM_CDW13_DSM_INCPRS)) >>
 									NVME_NVM_CDW13_DSM_SHIFT,
-	NVME_NVM_CDW13_CEV_AF_SHIFT				= 0,
-	NVME_NVM_CDW13_CEV_AF_MASK				= 0xffff,
+	NVME_NVM_CDW13_CEV_SHIFT				= 0,
+	NVME_NVM_CDW13_CEV_MASK					= 0xffff,
 	NVME_NVM_CDW13_DSPEC_SHIFT				= 16,
 	NVME_NVM_CDW13_DSPEC_MASK				= 0xffff,
 	NVME_NVM_CDW14_ELBTL_SHIFT				= 0,
@@ -393,6 +393,38 @@ enum nvme_cmd_dword_fields {
 	NVME_NVM_CDW15_ELBAT_MASK				= 0xffff,
 	NVME_NVM_CDW15_ELBATM_SHIFT				= 16,
 	NVME_NVM_CDW15_ELBATM_MASK				= 0xffff,
+	NVME_COPY_CDW3_LBTU_SHIFT				= 0,
+	NVME_COPY_CDW3_LBTU_MASK				= 0xffffffff,
+	NVME_COPY_CDW10_SDLBAL_SHIFT				= 0,
+	NVME_COPY_CDW10_SDLBAL_MASK				= 0xffffffff,
+	NVME_COPY_CDW11_SDLBAU_SHIFT				= 0,
+	NVME_COPY_CDW11_SDLBAU_MASK				= 0xffffffff,
+	NVME_COPY_CDW12_NR_SHIFT				= 0,
+	NVME_COPY_CDW12_NR_MASK					= 0xff,
+	NVME_COPY_CDW12_DESFMT_SHIFT				= 8,
+	NVME_COPY_CDW12_DESFMT_MASK				= 0xf,
+	NVME_COPY_CDW12_PRINFOR_SHIFT				= 12,
+	NVME_COPY_CDW12_PRINFOR_MASK				= 0xf,
+	NVME_COPY_CDW12_CETYPE_SHIFT				= 16,
+	NVME_COPY_CDW12_CETYPE_MASK				= 0xf,
+	NVME_COPY_CDW12_DTYPE_SHIFT				= 20,
+	NVME_COPY_CDW12_DTYPE_MASK				= 0xf,
+	NVME_COPY_CDW12_STCW_SHIFT				= 24,
+	NVME_COPY_CDW12_STCW_MASK				= 0x1,
+	NVME_COPY_CDW12_STCR_SHIFT				= 25,
+	NVME_COPY_CDW12_STCR_MASK				= 0x1,
+	NVME_COPY_CDW12_PRINFOW_SHIFT				= 26,
+	NVME_COPY_CDW12_PRINFOW_MASK				= 0xf,
+	NVME_COPY_CDW12_FUA_SHIFT				= 30,
+	NVME_COPY_CDW12_FUA_MASK				= 0x1,
+	NVME_COPY_CDW12_LR_SHIFT				= 31,
+	NVME_COPY_CDW12_LR_MASK					= 0x1,
+	NVME_COPY_CDW14_LBTL_SHIFT				= 0,
+	NVME_COPY_CDW14_LBTL_MASK				= 0xffffffff,
+	NVME_COPY_CDW15_LBAT_SHIFT				= 0,
+	NVME_COPY_CDW15_LBAT_MASK				= 0xffff,
+	NVME_COPY_CDW15_LBATM_SHIFT				= 16,
+	NVME_COPY_CDW15_LBATM_MASK				= 0xffff,
 };
 
 /**
@@ -4504,12 +4536,69 @@ static inline int nvme_dsm(nvme_link_t l, __u32 nsid, __u16 nr_ranges,
 /**
  * nvme_copy() - Copy command
  * @l:		Link handle
- * @args:	&struct nvme_copy_args argument structure
+ * @nsid:	Namespace identifier
+ * @sdlba:	Start destination LBA
+ * @ilbrt:	Initial logical block reference tag
+ * @lr:		Limited retry
+ * @fua:	Force unit access
+ * @dspec:	Directive specific value
+ * @lbatm:	Logical block application tag mask
+ * @lbat:	Logical block application tag
+ * @prinfor:	Protection information field for read
+ * @prinfow:	Protection information field for write
+ * @dtype:	Directive type
+ * @format:	Descriptor format
+ * @ilbrt_u64:	Initial logical block reference tag - 8 byte
+ *              version required for enhanced protection info
+ * @copy:	Range description
+ * @nr:		Number of ranges
+ * @result:	The command completion result from CQE dword0
  *
  * Return: 0 on success, the nvme command status if a response was
  * received (see &enum nvme_status_field) or a negative error otherwise.
  */
-int nvme_copy(nvme_link_t l, struct nvme_copy_args *args);
+static inline int nvme_copy(nvme_link_t l, __u32 nsid, __u64 sdlba, __u32 ilbrt, int lr, int fua,
+			    __u16 dspec, __u16 lbatm, __u16 lbat, __u8 prinfor, __u8 prinfow,
+			    __u8 dtype, __u8 format, __u64 ilbrt_u64, struct nvme_copy_range *copy,
+			    __u16 nr, __u32 *result)
+{
+	__u32 cdw3 = NVME_SET(ilbrt_u64 >> 32, COPY_CDW3_LBTU);
+	__u32 cdw10 = NVME_SET(sdlba, COPY_CDW10_SDLBAL);
+	__u32 cdw11 = NVME_SET(sdlba >> 32, COPY_CDW11_SDLBAU);
+	__u32 cdw12 = NVME_SET(nr - 1, COPY_CDW12_NR) | NVME_SET(format, COPY_CDW12_DESFMT) |
+		      NVME_SET(prinfor, COPY_CDW12_PRINFOR) | NVME_SET(dtype, COPY_CDW12_DTYPE) |
+		      NVME_SET(prinfow, COPY_CDW12_PRINFOW) | NVME_SET(fua, COPY_CDW12_FUA) |
+		      NVME_SET(lr, COPY_CDW12_LR);
+	__u32 cdw13 = NVME_SET(dspec, NVM_CDW13_DSPEC);
+	__u32 cdw14 = NVME_SET(ilbrt_u64, COPY_CDW14_LBTL);
+	__u32 cdw15 = NVME_SET(lbatm, COPY_CDW15_LBATM) | NVME_SET(lbat, COPY_CDW15_LBAT);
+	__u32 data_len;
+
+	if (format == 1)
+		data_len = nr * sizeof(struct nvme_copy_range_f1);
+	else if (format == 2)
+		data_len = nr * sizeof(struct nvme_copy_range_f2);
+	else if (format == 3)
+		data_len = nr * sizeof(struct nvme_copy_range_f3);
+	else
+		data_len = nr * sizeof(struct nvme_copy_range);
+
+	struct nvme_passthru_cmd cmd = {
+		.opcode         = nvme_cmd_copy,
+		.nsid           = nsid,
+		.cdw3           = cdw3,
+		.addr           = (__u64)(uintptr_t)copy,
+		.data_len       = data_len,
+		.cdw10          = cdw10,
+		.cdw11          = cdw11,
+		.cdw12          = cdw12,
+		.cdw13		= cdw13,
+		.cdw14          = cdw14,
+		.cdw15		= cdw15,
+	};
+
+	return nvme_submit_io_passthru(l, &cmd, result);
+}
 
 /**
  * nvme_resv_acquire() - Send an nvme reservation acquire
