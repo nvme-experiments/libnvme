@@ -3787,8 +3787,8 @@ static inline int nvme_flush(nvme_link_t l, __u32 nsid)
 	return nvme_submit_io_passthru(l, &cmd, NULL);
 }
 
-static inline int nvme_set_var_size_tags(__u32 *cmd_dw2, __u32 *cmd_dw3, __u32 *cmd_dw14, __u8 pif,
-					 __u8 sts, __u64 reftag, __u64 storage_tag)
+static inline int nvme_set_var_size_tags(__u8 pif, __u8 sts, __u64 reftag, __u64 storage_tag,
+					 __u32 *cmd_dw2, __u32 *cmd_dw3, __u32 *cmd_dw14)
 {
 	__u32 cdw2 = 0, cdw3 = 0, cdw14;
 
@@ -3831,14 +3831,10 @@ static inline int nvme_set_var_size_tags(__u32 *cmd_dw2, __u32 *cmd_dw3, __u32 *
  * nvme_io() - Submit an nvme user I/O command
  * @l:		Link handle
  * @opcode:	Opcode to execute
+ * @nsid:	Namespace ID
  * @slba:	Starting logical block
  * @storage_tag: This filed specifies Variable Sized Expected Logical Block
  *		Storage Tag (ELBST) or Logical Block Storage Tag (LBST)
- * @data:	Pointer to user address of the data buffer
- * @metadata:	Pointer to user address of the metadata buffer
- * @nsid:	Namespace ID
- * @data_len:	Length of user buffer, @data, in bytes
- * @metadata_len:Length of user buffer, @metadata, in bytes
  * @nlb:	Number of logical blocks to send (0's based value)
  * @control:	Command control flags, see &enum nvme_io_control_flags.
  * @apptag:	This field specifies the Application Tag Mask expected value.
@@ -3862,16 +3858,19 @@ static inline int nvme_set_var_size_tags(__u32 *cmd_dw2, __u32 *cmd_dw3, __u32 *
  * @pif:	Protection information format, determines how variable sized
  *		storage_tag and reftag are put into dwords 2, 3, and 14. Set by
  *		namespace Extended LBA Format.
+ * @data:	Pointer to user address of the data buffer
+ * @data_len:	Length of user buffer, @data, in bytes
+ * @metadata:	Pointer to user address of the metadata buffer
+ * @metadata_len:Length of user buffer, @metadata, in bytes
  * @result:	The command completion result from CQE dword0
  *
  * Return: 0 on success, the nvme command status if a response was
  * received (see &enum nvme_status_field) or a negative error otherwise.
  */
-static inline int nvme_io(nvme_link_t l, __u8 opcode, __u64 slba, __u64 storage_tag, void *data,
-			  void *metadata, __u32 nsid, __u32 reftag, __u32 data_len,
-			  __u32 metadata_len, __u16 nlb, __u16 control, __u16 apptag, __u16 appmask,
-			  __u16 dspec, __u8 dsm, __u64 reftag_u64, __u8 sts, __u8 pif,
-			  __u32 *result)
+static inline int nvme_io(nvme_link_t l, __u8 opcode, __u32 nsid, __u64 slba, __u64 storage_tag,
+			  __u32 reftag, __u16 nlb, __u16 control, __u16 apptag, __u16 appmask,
+			  __u16 dspec, __u8 dsm, __u64 reftag_u64, __u8 sts, __u8 pif, void *data,
+			  __u32 data_len, void *metadata, __u32 metadata_len, __u32 *result)
 {
 	__u32 cdw10 = NVME_SET(slba, NVM_CDW10_SLBAL);
 	__u32 cdw11 = NVME_SET(slba >> 32, NVM_CDW11_SLBAU);
@@ -3893,8 +3892,8 @@ static inline int nvme_io(nvme_link_t l, __u8 opcode, __u64 slba, __u64 storage_
 		.cdw15		= cdw15,
 	};
 
-	if (nvme_set_var_size_tags(&cmd.cdw2, &cmd.cdw3, &cmd.cdw14, pif, sts, reftag_u64,
-				   storage_tag))
+	if (nvme_set_var_size_tags(pif, sts, reftag_u64, storage_tag, &cmd.cdw2, &cmd.cdw3,
+				   &cmd.cdw14))
 		return -EINVAL;
 
 
@@ -3904,14 +3903,10 @@ static inline int nvme_io(nvme_link_t l, __u8 opcode, __u64 slba, __u64 storage_
 /**
  * nvme_read() - Submit an nvme user read command
  * @l:		Link handle
+ * @nsid:	Namespace ID
  * @slba:	Starting logical block
  * @storage_tag: This filed specifies Variable Sized Expected Logical Block
  *		Storage Tag (ELBST) or Logical Block Storage Tag (LBST)
- * @data:	Pointer to user address of the data buffer
- * @metadata:	Pointer to user address of the metadata buffer
- * @nsid:	Namespace ID
- * @data_len:	Length of user buffer, @data, in bytes
- * @metadata_len:Length of user buffer, @metadata, in bytes
  * @nlb:	Number of logical blocks to send (0's based value)
  * @control:	Command control flags, see &enum nvme_io_control_flags.
  * @apptag:	This field specifies the Application Tag Mask expected value.
@@ -3935,33 +3930,32 @@ static inline int nvme_io(nvme_link_t l, __u8 opcode, __u64 slba, __u64 storage_
  * @pif:	Protection information format, determines how variable sized
  *		storage_tag and reftag are put into dwords 2, 3, and 14. Set by
  *		namespace Extended LBA Format.
+ * @data:	Pointer to user address of the data buffer
+ * @data_len:	Length of user buffer, @data, in bytes
+ * @metadata:	Pointer to user address of the metadata buffer
+ * @metadata_len:Length of user buffer, @metadata, in bytes
  * @result:	The command completion result from CQE dword0
  *
  * Return: 0 on success, the nvme command status if a response was
  * received (see &enum nvme_status_field) or a negative error otherwise.
  */
-static inline int nvme_read(nvme_link_t l, __u64 slba, __u64 storage_tag, void *data,
-			    void *metadata, __u32 nsid, __u32 reftag, __u32 data_len,
-			    __u32 metadata_len, __u16 nlb, __u16 control, __u16 apptag,
-			    __u16 appmask, __u16 dspec, __u8 dsm, __u64 reftag_u64, __u8 sts,
-			    __u8 pif, __u32 *result)
+static inline int nvme_read(nvme_link_t l, __u32 nsid, __u64 slba, __u64 storage_tag, __u32 reftag,
+			    __u16 nlb, __u16 control, __u16 apptag, __u16 appmask, __u16 dspec,
+			    __u8 dsm, __u64 reftag_u64, __u8 sts, __u8 pif, void *data,
+			    __u32 data_len, void *metadata, __u32 metadata_len, __u32 *result)
 {
-	return nvme_io(l, nvme_cmd_read, slba, storage_tag, data, metadata, nsid, reftag, data_len,
-		       metadata_len, nlb, control, apptag, appmask, dspec, dsm, reftag_u64, sts,
-		       pif, result);
+	return nvme_io(l, nvme_cmd_read, nsid, slba, storage_tag, reftag, nlb, control, apptag,
+		       appmask, dspec, dsm, reftag_u64, sts, pif, data, data_len, metadata,
+		       metadata_len, result);
 }
 
 /**
  * nvme_write() - Submit an nvme user write command
  * @l:		Link handle
+ * @nsid:	Namespace ID
  * @slba:	Starting logical block
  * @storage_tag: This filed specifies Variable Sized Expected Logical Block
  *		Storage Tag (ELBST) or Logical Block Storage Tag (LBST)
- * @data:	Pointer to user address of the data buffer
- * @metadata:	Pointer to user address of the metadata buffer
- * @nsid:	Namespace ID
- * @data_len:	Length of user buffer, @data, in bytes
- * @metadata_len:Length of user buffer, @metadata, in bytes
  * @nlb:	Number of logical blocks to send (0's based value)
  * @control:	Command control flags, see &enum nvme_io_control_flags.
  * @apptag:	This field specifies the Application Tag Mask expected value.
@@ -3985,33 +3979,32 @@ static inline int nvme_read(nvme_link_t l, __u64 slba, __u64 storage_tag, void *
  * @pif:	Protection information format, determines how variable sized
  *		storage_tag and reftag are put into dwords 2, 3, and 14. Set by
  *		namespace Extended LBA Format.
+ * @data:	Pointer to user address of the data buffer
+ * @data_len:	Length of user buffer, @data, in bytes
+ * @metadata:	Pointer to user address of the metadata buffer
+ * @metadata_len:Length of user buffer, @metadata, in bytes
  * @result:	The command completion result from CQE dword0
  *
  * Return: 0 on success, the nvme command status if a response was
  * received (see &enum nvme_status_field) or a negative error otherwise.
  */
-static inline int nvme_write(nvme_link_t l, __u64 slba, __u64 storage_tag, void *data,
-			     void *metadata, __u32 nsid, __u32 reftag, __u32 data_len,
-			     __u32 metadata_len, __u16 nlb, __u16 control, __u16 apptag,
-			     __u16 appmask, __u16 dspec, __u8 dsm, __u64 reftag_u64, __u8 sts,
-			     __u8 pif, __u32 *result)
+static inline int nvme_write(nvme_link_t l, __u32 nsid, __u64 slba, __u64 storage_tag, __u32 reftag,
+			     __u16 nlb, __u16 control, __u16 apptag, __u16 appmask, __u16 dspec,
+			     __u8 dsm, __u64 reftag_u64, __u8 sts, __u8 pif, void *data,
+			     __u32 data_len, void *metadata, __u32 metadata_len, __u32 *result)
 {
-	return nvme_io(l, nvme_cmd_write, slba, storage_tag, data, metadata, nsid, reftag, data_len,
-		       metadata_len, nlb, control, apptag, appmask, dspec, dsm, reftag_u64, sts,
-		       pif, result);
+	return nvme_io(l, nvme_cmd_write, nsid, slba, storage_tag, reftag, nlb, control, apptag,
+		       appmask, dspec, dsm, reftag_u64, sts, pif, data, data_len, metadata,
+		       metadata_len, result);
 }
 
 /**
  * nvme_compare() - Submit an nvme user compare command
  * @l:		Link handle
+ * @nsid:	Namespace ID
  * @slba:	Starting logical block
  * @storage_tag: This filed specifies Variable Sized Expected Logical Block
  *		Storage Tag (ELBST) or Logical Block Storage Tag (LBST)
- * @data:	Pointer to user address of the data buffer
- * @metadata:	Pointer to user address of the metadata buffer
- * @nsid:	Namespace ID
- * @data_len:	Length of user buffer, @data, in bytes
- * @metadata_len:Length of user buffer, @metadata, in bytes
  * @nlb:	Number of logical blocks to send (0's based value)
  * @control:	Command control flags, see &enum nvme_io_control_flags.
  * @apptag:	This field specifies the Application Tag Mask expected value.
@@ -4035,33 +4028,33 @@ static inline int nvme_write(nvme_link_t l, __u64 slba, __u64 storage_tag, void 
  * @pif:	Protection information format, determines how variable sized
  *		storage_tag and reftag are put into dwords 2, 3, and 14. Set by
  *		namespace Extended LBA Format.
+ * @data:	Pointer to user address of the data buffer
+ * @data_len:	Length of user buffer, @data, in bytes
+ * @metadata:	Pointer to user address of the metadata buffer
+ * @metadata_len:Length of user buffer, @metadata, in bytes
  * @result:	The command completion result from CQE dword0
  *
  * Return: 0 on success, the nvme command status if a response was
  * received (see &enum nvme_status_field) or a negative error otherwise.
  */
-static inline int nvme_compare(nvme_link_t l, __u64 slba, __u64 storage_tag, void *data,
-			       void *metadata, __u32 nsid, __u32 reftag, __u32 data_len,
-			       __u32 metadata_len, __u16 nlb, __u16 control, __u16 apptag,
-			       __u16 appmask, __u16 dspec, __u8 dsm, __u64 reftag_u64, __u8 sts,
-			       __u8 pif, __u32 *result)
+static inline int nvme_compare(nvme_link_t l, __u32 nsid, __u64 slba, __u64 storage_tag,
+			       __u32 reftag, __u16 nlb, __u16 control, __u16 apptag, __u16 appmask,
+			       __u16 dspec, __u8 dsm, __u64 reftag_u64, __u8 sts, __u8 pif,
+			       void *data, __u32 data_len, void *metadata, __u32 metadata_len,
+			       __u32 *result)
 {
-	return nvme_io(l, nvme_cmd_compare, slba, storage_tag, data, metadata, nsid, reftag,
-		       data_len, metadata_len, nlb, control, apptag, appmask, dspec, dsm,
-		       reftag_u64, sts, pif, result);
+	return nvme_io(l, nvme_cmd_compare, nsid, slba, storage_tag, reftag, nlb, control, apptag,
+		       appmask, dspec, dsm, reftag_u64, sts, pif, data, data_len, metadata,
+		       metadata_len, result);
 }
 
 /**
  * nvme_write_zeros() - Submit an nvme write zeroes command
  * @l:		Link handle
+ * @nsid:	Namespace ID
  * @slba:	Starting logical block
  * @storage_tag: This filed specifies Variable Sized Expected Logical Block
  *		Storage Tag (ELBST) or Logical Block Storage Tag (LBST)
- * @data:	Pointer to user address of the data buffer
- * @metadata:	Pointer to user address of the metadata buffer
- * @nsid:	Namespace ID
- * @data_len:	Length of user buffer, @data, in bytes
- * @metadata_len:Length of user buffer, @metadata, in bytes
  * @nlb:	Number of logical blocks to send (0's based value)
  * @control:	Command control flags, see &enum nvme_io_control_flags.
  * @apptag:	This field specifies the Application Tag Mask expected value.
@@ -4085,6 +4078,10 @@ static inline int nvme_compare(nvme_link_t l, __u64 slba, __u64 storage_tag, voi
  * @pif:	Protection information format, determines how variable sized
  *		storage_tag and reftag are put into dwords 2, 3, and 14. Set by
  *		namespace Extended LBA Format.
+ * @data:	Pointer to user address of the data buffer
+ * @data_len:	Length of user buffer, @data, in bytes
+ * @metadata:	Pointer to user address of the metadata buffer
+ * @metadata_len:Length of user buffer, @metadata, in bytes
  * @result:	The command completion result from CQE dword0
  *
  * The Write Zeroes command sets a range of logical blocks to zero.  After
@@ -4095,28 +4092,24 @@ static inline int nvme_compare(nvme_link_t l, __u64 slba, __u64 storage_tag, voi
  * Return: 0 on success, the nvme command status if a response was
  * received (see &enum nvme_status_field) or a negative error otherwise.
  */
-static inline int nvme_write_zeros(nvme_link_t l, __u64 slba, __u64 storage_tag, void *data,
-				   void *metadata, __u32 nsid, __u32 reftag, __u32 data_len,
-				   __u32 metadata_len, __u16 nlb, __u16 control, __u16 apptag,
+static inline int nvme_write_zeros(nvme_link_t l, __u32 nsid, __u64 slba, __u64 storage_tag,
+				   __u32 reftag, __u16 nlb, __u16 control, __u16 apptag,
 				   __u16 appmask, __u16 dspec, __u8 dsm, __u64 reftag_u64, __u8 sts,
-				   __u8 pif, __u32 *result)
+				   __u8 pif, void *data, __u32 data_len, void *metadata,
+				   __u32 metadata_len, __u32 *result)
 {
-	return nvme_io(l, nvme_cmd_write_zeroes, slba, storage_tag, data, metadata, nsid, reftag,
-		       data_len, metadata_len, nlb, control, apptag, appmask, dspec, dsm,
-		       reftag_u64, sts, pif, result);
+	return nvme_io(l, nvme_cmd_write_zeroes, nsid, slba, storage_tag, reftag, nlb, control,
+		       apptag, appmask, dspec, dsm, reftag_u64, sts, pif, data, data_len, metadata,
+		       metadata_len, result);
 }
 
 /**
  * nvme_write_uncorrectable() - Submit an nvme write uncorrectable command
  * @l:		Link handle
+ * @nsid:	Namespace ID
  * @slba:	Starting logical block
  * @storage_tag: This filed specifies Variable Sized Expected Logical Block
  *		Storage Tag (ELBST) or Logical Block Storage Tag (LBST)
- * @data:	Pointer to user address of the data buffer
- * @metadata:	Pointer to user address of the metadata buffer
- * @nsid:	Namespace ID
- * @data_len:	Length of user buffer, @data, in bytes
- * @metadata_len:Length of user buffer, @metadata, in bytes
  * @nlb:	Number of logical blocks to send (0's based value)
  * @control:	Command control flags, see &enum nvme_io_control_flags.
  * @apptag:	This field specifies the Application Tag Mask expected value.
@@ -4140,6 +4133,10 @@ static inline int nvme_write_zeros(nvme_link_t l, __u64 slba, __u64 storage_tag,
  * @pif:	Protection information format, determines how variable sized
  *		storage_tag and reftag are put into dwords 2, 3, and 14. Set by
  *		namespace Extended LBA Format.
+ * @data:	Pointer to user address of the data buffer
+ * @data_len:	Length of user buffer, @data, in bytes
+ * @metadata:	Pointer to user address of the metadata buffer
+ * @metadata_len:Length of user buffer, @metadata, in bytes
  * @result:	The command completion result from CQE dword0
  *
  * The Write Uncorrectable command marks a range of logical blocks as invalid.
@@ -4150,28 +4147,24 @@ static inline int nvme_write_zeros(nvme_link_t l, __u64 slba, __u64 storage_tag,
  * Return: 0 on success, the nvme command status if a response was
  * received (see &enum nvme_status_field) or a negative error otherwise.
  */
-static inline int nvme_write_uncorrectable(nvme_link_t l, __u64 slba, __u64 storage_tag, void *data,
-					   void *metadata, __u32 nsid, __u32 reftag, __u32 data_len,
-					   __u32 metadata_len, __u16 nlb, __u16 control,
-					   __u16 apptag, __u16 appmask, __u16 dspec, __u8 dsm,
-					   __u64 reftag_u64, __u8 sts, __u8 pif, __u32 *result)
+static inline int nvme_write_uncorrectable(nvme_link_t l, __u32 nsid, __u64 slba, __u64 storage_tag,
+					   __u32 reftag, __u16 nlb, __u16 control, __u16 apptag,
+					   __u16 appmask, __u16 dspec, __u8 dsm, __u64 reftag_u64,
+					   __u8 sts, __u8 pif, void *data, __u32 data_len,
+					   void *metadata, __u32 metadata_len, __u32 *result)
 {
-	return nvme_io(l, nvme_cmd_write_uncor, slba, storage_tag, data, metadata, nsid, reftag,
-		       data_len, metadata_len, nlb, control, apptag, appmask, dspec, dsm,
-		       reftag_u64, sts, pif, result);
+	return nvme_io(l, nvme_cmd_write_uncor, nsid, slba, storage_tag, reftag, nlb, control,
+		       apptag, appmask, dspec, dsm, reftag_u64, sts, pif, data, data_len, metadata,
+		       metadata_len, result);
 }
 
 /**
  * nvme_verify() - Send an nvme verify command
  * @l:		Link handle
+ * @nsid:	Namespace ID
  * @slba:	Starting logical block
  * @storage_tag: This filed specifies Variable Sized Expected Logical Block
  *		Storage Tag (ELBST) or Logical Block Storage Tag (LBST)
- * @data:	Pointer to user address of the data buffer
- * @metadata:	Pointer to user address of the metadata buffer
- * @nsid:	Namespace ID
- * @data_len:	Length of user buffer, @data, in bytes
- * @metadata_len:Length of user buffer, @metadata, in bytes
  * @nlb:	Number of logical blocks to send (0's based value)
  * @control:	Command control flags, see &enum nvme_io_control_flags.
  * @apptag:	This field specifies the Application Tag Mask expected value.
@@ -4195,6 +4188,10 @@ static inline int nvme_write_uncorrectable(nvme_link_t l, __u64 slba, __u64 stor
  * @pif:	Protection information format, determines how variable sized
  *		storage_tag and reftag are put into dwords 2, 3, and 14. Set by
  *		namespace Extended LBA Format.
+ * @data:	Pointer to user address of the data buffer
+ * @data_len:	Length of user buffer, @data, in bytes
+ * @metadata:	Pointer to user address of the metadata buffer
+ * @metadata_len:Length of user buffer, @metadata, in bytes
  * @result:	The command completion result from CQE dword0
  *
  * The Verify command verifies integrity of stored information by reading data
@@ -4204,24 +4201,24 @@ static inline int nvme_write_uncorrectable(nvme_link_t l, __u64 slba, __u64 stor
  * Return: 0 on success, the nvme command status if a response was
  * received (see &enum nvme_status_field) or a negative error otherwise.
  */
-static inline int nvme_verify(nvme_link_t l, __u64 slba, __u64 storage_tag, void *data,
-			      void *metadata, __u32 nsid, __u32 reftag, __u32 data_len,
-			      __u32 metadata_len, __u16 nlb, __u16 control, __u16 apptag,
-			      __u16 appmask, __u16 dspec, __u8 dsm, __u64 reftag_u64, __u8 sts,
-			      __u8 pif, __u32 *result)
+static inline int nvme_verify(nvme_link_t l, __u32 nsid, __u64 slba, __u64 storage_tag,
+			      __u32 reftag, __u16 nlb, __u16 control, __u16 apptag, __u16 appmask,
+			      __u16 dspec, __u8 dsm, __u64 reftag_u64, __u8 sts, __u8 pif,
+			      void *data, __u32 data_len, void *metadata, __u32 metadata_len,
+			      __u32 *result)
 {
-	return nvme_io(l, nvme_cmd_verify, slba, storage_tag, data, metadata, nsid, reftag,
-		       data_len, metadata_len, nlb, control, apptag, appmask, dspec, dsm,
-		       reftag_u64, sts, pif, result);
+	return nvme_io(l, nvme_cmd_verify, nsid, slba, storage_tag, reftag, nlb, control, apptag,
+		       appmask, dspec, dsm, reftag_u64, sts, pif, data, data_len, metadata,
+		       metadata_len, result);
 }
 
 /**
  * nvme_dsm() - Send an nvme data set management command
  * @l:		Link handle
+ * @nsid:	Namespace identifier
+ * @attrs:	DSM attributes, see &enum nvme_dsm_attributes
  * @dsm:	The data set management attributes
  * @nr_ranges:	Number of block ranges in the data set management attributes
- * @attrs:	DSM attributes, see &enum nvme_dsm_attributes
- * @nsid:	Namespace identifier
  * @result:	The command completion result from CQE dword0
  *
  * The Dataset Management command is used by the host to indicate attributes
@@ -4233,8 +4230,8 @@ static inline int nvme_verify(nvme_link_t l, __u64 slba, __u64 storage_tag, void
  * Return: 0 on success, the nvme command status if a response was
  * received (see &enum nvme_status_field) or a negative error otherwise.
  */
-static inline int nvme_dsm(nvme_link_t l, struct nvme_dsm_range *dsm, __u16 nr_ranges, __u32 attrs,
-			   __u32 nsid, __u32 *result)
+static inline int nvme_dsm(nvme_link_t l, __u32 nsid, __u32 attrs, struct nvme_dsm_range *dsm,
+			   __u16 nr_ranges, __u32 *result)
 {
 	__u32 cdw10 = NVME_SET(nr_ranges - 1, DSM_CDW10_NR);
 	__u32 cdw11 = NVME_SET(attrs, DSM_CDW11_ATTRS);
@@ -4254,12 +4251,11 @@ static inline int nvme_dsm(nvme_link_t l, struct nvme_dsm_range *dsm, __u16 nr_r
 /**
  * nvme_copy() - Copy command
  * @l:		Link handle
+ * @nsid:	Namespace identifier
  * @sdlba:	Start destination LBA
- * @copy:	Range description
  * @ilbrt:	Initial logical block reference tag
  * @lr:		Limited retry
  * @fua:	Force unit access
- * @nr:		Number of ranges
  * @dspec:	Directive specific value
  * @lbatm:	Logical block application tag mask
  * @lbat:	Logical block application tag
@@ -4269,16 +4265,17 @@ static inline int nvme_dsm(nvme_link_t l, struct nvme_dsm_range *dsm, __u16 nr_r
  * @format:	Descriptor format
  * @ilbrt_u64:	Initial logical block reference tag - 8 byte
  *              version required for enhanced protection info
- * @nsid:	Namespace identifier
+ * @copy:	Range description
+ * @nr:		Number of ranges
  * @result:	The command completion result from CQE dword0
  *
  * Return: 0 on success, the nvme command status if a response was
  * received (see &enum nvme_status_field) or a negative error otherwise.
  */
-static inline int nvme_copy(nvme_link_t l, __u64 sdlba, struct nvme_copy_range *copy, __u32 ilbrt,
-			    int lr, int fua, __u16 nr, __u16 dspec, __u16 lbatm, __u16 lbat,
-			    __u8 prinfor, __u8 prinfow, __u8 dtype, __u8 format, __u64 ilbrt_u64,
-			    __u32 nsid, __u32 *result)
+static inline int nvme_copy(nvme_link_t l, __u32 nsid, __u64 sdlba, __u32 ilbrt, int lr, int fua,
+			    __u16 dspec, __u16 lbatm, __u16 lbat, __u8 prinfor, __u8 prinfow,
+			    __u8 dtype, __u8 format, __u64 ilbrt_u64, struct nvme_copy_range *copy,
+			    __u16 nr, __u32 *result)
 {
 	__u32 cdw3 = NVME_SET(ilbrt_u64 >> 32, COPY_CDW3_LBTU);
 	__u32 cdw10 = NVME_SET(sdlba, COPY_CDW10_SDLBAL);

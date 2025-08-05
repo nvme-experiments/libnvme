@@ -857,8 +857,8 @@ static void test_read(void)
 
 	arbitrary(&expected_data, sizeof(expected_data));
 	set_mock_io_cmds(&mock_io_cmd, 1);
-	err = nvme_read(test_link, slba, 0xef, &data, NULL, TEST_NSID, 0xab, sizeof(data), 0, nlb,
-			control, apptag, appmask, dspec, dsm, 0, 0, 0, &result);
+	err = nvme_read(test_link, TEST_NSID, slba, 0xef, 0xab, nlb, control, apptag, appmask,
+			dspec, dsm, 0, 0, 0, &data, sizeof(data), NULL, 0, &result);
 	end_mock_cmds();
 	check(err == 0, "returned error %d", err);
 	check(result == 0, "returned result %u", result);
@@ -893,9 +893,9 @@ static void test_write(void)
 	arbitrary(&expected_data, sizeof(expected_data));
 	memcpy(&data, &expected_data, sizeof(expected_data));
 	set_mock_io_cmds(&mock_io_cmd, 1);
-	err = nvme_write(test_link, slba, 0xab, &expected_data, NULL, TEST_NSID, 0xef,
-			 sizeof(expected_data), 0, nlb, control, apptag, appmask, dspec, dsm, 0, 0,
-			 0, &result);
+	err = nvme_write(test_link, TEST_NSID, slba, 0xab, 0xef, nlb, control, apptag, appmask,
+			 dspec, dsm, 0, 0, 0, &expected_data, sizeof(expected_data), NULL, 0,
+			 &result);
 	end_mock_cmds();
 	check(err == 0, "returned error %d", err);
 	check(result == 0, "returned result %u", result);
@@ -930,9 +930,9 @@ static void test_compare(void)
 	arbitrary(&expected_data, sizeof(expected_data));
 	memcpy(&data, &expected_data, sizeof(expected_data));
 	set_mock_io_cmds(&mock_io_cmd, 1);
-	err = nvme_compare(test_link, slba, 0xab, &expected_data, NULL, TEST_NSID, 0xff,
-			   sizeof(expected_data), 0, nlb, control, apptag, appmask, dspec, dsm, 0,
-			   0, 0, &result);
+	err = nvme_compare(test_link, TEST_NSID, slba, 0xab, 0xff, nlb, control, apptag, appmask,
+			   dspec, dsm, 0, 0, 0, &expected_data, sizeof(expected_data), NULL, 0,
+			   &result);
 	end_mock_cmds();
 	check(err == 0, "returned error %d", err);
 	check(result == 0, "returned result %u", result);
@@ -967,9 +967,9 @@ static void test_write_zeros(void)
 	arbitrary(&expected_data, sizeof(expected_data));
 	memcpy(&data, &expected_data, sizeof(expected_data));
 	set_mock_io_cmds(&mock_io_cmd, 1);
-	err = nvme_write_zeros(test_link, slba, 0xab, &expected_data, NULL, TEST_NSID, 0xff,
-			       sizeof(expected_data), 0, nlb, control, apptag, appmask, dspec, dsm,
-			       0, 0, 0, &result);
+	err = nvme_write_zeros(test_link, TEST_NSID, slba, 0xab, 0xff, nlb, control, apptag,
+			       appmask, dspec, dsm, 0, 0, 0, &expected_data, sizeof(expected_data),
+			       NULL, 0, &result);
 	end_mock_cmds();
 	check(err == 0, "returned error %d", err);
 	check(result == 0, "returned result %u", result);
@@ -1004,9 +1004,9 @@ static void test_write_uncorrectable(void)
 	arbitrary(&expected_data, sizeof(expected_data));
 	memcpy(&data, &expected_data, sizeof(expected_data));
 	set_mock_io_cmds(&mock_io_cmd, 1);
-	err = nvme_write_uncorrectable(test_link, slba, 0x0, &expected_data, NULL, TEST_NSID, 0x0,
-				       sizeof(expected_data), 0, nlb, control, apptag, appmask,
-				       dspec, dsm, 0, 0, 0, &result);
+	err = nvme_write_uncorrectable(test_link, TEST_NSID, slba, 0x0, 0x0, nlb, control, apptag,
+				       appmask, dspec, dsm, 0, 0, 0, &expected_data,
+				       sizeof(expected_data), NULL, 0, &result);
 	end_mock_cmds();
 	check(err == 0, "returned error %d", err);
 	check(result == 0, "returned result %u", result);
@@ -1041,9 +1041,9 @@ static void test_verify(void)
 	arbitrary(&expected_data, sizeof(expected_data));
 	memcpy(&data, &expected_data, sizeof(expected_data));
 	set_mock_io_cmds(&mock_io_cmd, 1);
-	err = nvme_verify(test_link, slba, 0xffffffffffffffff, &expected_data, NULL, TEST_NSID,
-			  0xffffffff, sizeof(expected_data), 0, nlb, control, apptag, appmask,
-			  dspec, dsm, 0, 0, 0, &result);
+	err = nvme_verify(test_link, TEST_NSID, slba, 0xffffffffffffffff, 0xffffffff, nlb, control,
+			  apptag, appmask, dspec, dsm, 0, 0, 0, &expected_data,
+			  sizeof(expected_data), NULL, 0, &result);
 	end_mock_cmds();
 	check(err == 0, "returned error %d", err);
 	check(result == 0, "returned result %u", result);
@@ -1073,7 +1073,7 @@ static void test_dsm(void)
 
 	arbitrary(dsm, dsm_size);
 	set_mock_io_cmds(&mock_io_cmd, 1);
-	err = nvme_dsm(test_link, dsm, nr_ranges, NVME_DSMGMT_AD, TEST_NSID, &result);
+	err = nvme_dsm(test_link, TEST_NSID, NVME_DSMGMT_AD, dsm, nr_ranges, &result);
 	end_mock_cmds();
 	check(err == 0, "returned error %d", err);
 	check(result == 0, "returned result %u", result);
@@ -1107,8 +1107,8 @@ static void test_copy(void)
 	};
 
 	set_mock_io_cmds(&mock_io_cmd, 1);
-	err = nvme_copy(test_link, sdlba, copy, ilbrt, lr, fua, nr, dspec, lbatm, lbat, prinfor,
-			prinfow, dtype, format, ilbrt_u64, TEST_NSID, &result);
+	err = nvme_copy(test_link, TEST_NSID, sdlba, ilbrt, lr, fua, dspec, lbatm, lbat, prinfor,
+			prinfow, dtype, format, ilbrt_u64, copy, nr, &result);
 	end_mock_cmds();
 	check(err == 0, "returned error %d", err);
 	check(result == 0, "returned result %u", result);
