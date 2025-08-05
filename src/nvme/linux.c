@@ -94,6 +94,7 @@ nvme_link_t __nvme_create_link(nvme_root_t r)
 		return NULL;
 
 	l->root = r;
+	l->timeout = NVME_DEFAULT_IOCTL_TIMEOUT;
 
 	return l;
 }
@@ -182,6 +183,16 @@ bool nvme_link_is_mi(nvme_link_t l)
 const char *nvme_link_get_name(nvme_link_t l)
 {
 	return l->name;
+}
+
+__u32 nvme_link_get_timeout(nvme_link_t l)
+{
+	return l->timeout;
+}
+
+void nvme_link_set_timeout(nvme_link_t l, __u32 timeout)
+{
+	l->timeout = timeout;
 }
 
 int nvme_fw_download_seq(nvme_link_t l, __u32 size, __u32 xfer, __u32 offset,
@@ -363,7 +374,6 @@ int nvme_get_lba_status_log(nvme_link_t l, bool rae, struct nvme_lba_status_log 
 		.lsp = NVME_LOG_LSP_NONE,
 		.lsi = NVME_LOG_LSI_NONE,
 		.uuidx = NVME_UUID_NONE,
-		.timeout = NVME_DEFAULT_IOCTL_TIMEOUT,
 		.result = NULL,
 		.csi = NVME_CSI_NVM,
 		.rae = rae,

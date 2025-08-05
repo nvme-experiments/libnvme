@@ -30,6 +30,7 @@
 #include "util.h"
 #include "log.h"
 #include "private.h"
+#include "linux.h"
 
 static int nvme_verify_chr(nvme_link_t l)
 {
@@ -97,6 +98,9 @@ int nvme_submit_passthru64(nvme_link_t l, unsigned long ioctl_cmd,
 			   struct nvme_passthru_cmd64 *cmd,
 			   __u64 *result)
 {
+	if (cmd->timeout_ms == NVME_DEFAULT_IOCTL_TIMEOUT)
+		cmd->timeout_ms = nvme_link_get_timeout(l);
+
 	int err = ioctl(l->fd, ioctl_cmd, cmd);
 
 	if (err >= 0 && result)
@@ -110,6 +114,9 @@ __attribute__((weak))
 int nvme_submit_passthru(nvme_link_t l, unsigned long ioctl_cmd,
 			 struct nvme_passthru_cmd *cmd, __u32 *result)
 {
+	if (cmd->timeout_ms == NVME_DEFAULT_IOCTL_TIMEOUT)
+		cmd->timeout_ms = nvme_link_get_timeout(l);
+
 	int err = ioctl(l->fd, ioctl_cmd, cmd);
 
 	if (err >= 0 && result)
@@ -670,7 +677,6 @@ static int __nvme_get_features(nvme_link_t l, enum nvme_features_id fid,
 		.uuidx = NVME_UUID_NONE,
 		.data_len = 0,
 		.data = NULL,
-		.timeout = NVME_DEFAULT_IOCTL_TIMEOUT,
 		.result = result,
 	};
 
@@ -701,7 +707,6 @@ int nvme_get_features_lba_range(nvme_link_t l, enum nvme_get_features_sel sel,
 		.uuidx = NVME_UUID_NONE,
 		.data = data,
 		.data_len = sizeof(*data),
-		.timeout = NVME_DEFAULT_IOCTL_TIMEOUT,
 		.result = result,
 	};
 
@@ -720,7 +725,6 @@ int nvme_get_features_temp_thresh(nvme_link_t l, enum nvme_get_features_sel sel,
 		.uuidx = NVME_UUID_NONE,
 		.data_len = 0,
 		.data = NULL,
-		.timeout = NVME_DEFAULT_IOCTL_TIMEOUT,
 		.result = result,
 	};
 
@@ -737,7 +741,6 @@ int nvme_get_features_err_recovery(nvme_link_t l, enum nvme_get_features_sel sel
 		.nsid = nsid,
 		.sel = sel,
 		.uuidx = NVME_UUID_NONE,
-		.timeout = NVME_DEFAULT_IOCTL_TIMEOUT,
 		.result = result,
 	};
 
@@ -775,7 +778,6 @@ int nvme_get_features_irq_config(nvme_link_t l, enum nvme_get_features_sel sel,
 		.uuidx = NVME_UUID_NONE,
 		.data_len = 0,
 		.data = NULL,
-		.timeout = NVME_DEFAULT_IOCTL_TIMEOUT,
 		.result = result,
 	};
 
@@ -807,7 +809,6 @@ int nvme_get_features_auto_pst(nvme_link_t l, enum nvme_get_features_sel sel,
 		.uuidx = NVME_UUID_NONE,
 		.data_len = sizeof(*apst),
 		.data = apst,
-		.timeout = NVME_DEFAULT_IOCTL_TIMEOUT,
 		.result = result,
 	};
 
@@ -826,7 +827,6 @@ int nvme_get_features_host_mem_buf(nvme_link_t l, enum nvme_get_features_sel sel
 		.uuidx = NVME_UUID_NONE,
 		.data = attrs,
 		.data_len = sizeof(*attrs),
-		.timeout = NVME_DEFAULT_IOCTL_TIMEOUT,
 		.result = result,
 	};
 
@@ -845,7 +845,6 @@ int nvme_get_features_timestamp(nvme_link_t l, enum nvme_get_features_sel sel,
 		.uuidx = NVME_UUID_NONE,
 		.data_len = sizeof(*ts),
 		.data = ts,
-		.timeout = NVME_DEFAULT_IOCTL_TIMEOUT,
 		.result = NULL,
 	};
 
@@ -885,7 +884,6 @@ int nvme_get_features_plm_config(nvme_link_t l, enum nvme_get_features_sel sel,
 		.uuidx = NVME_UUID_NONE,
 		.data_len = sizeof(*data),
 		.data = data,
-		.timeout = NVME_DEFAULT_IOCTL_TIMEOUT,
 		.result = result,
 	};
 
@@ -904,7 +902,6 @@ int nvme_get_features_plm_window(nvme_link_t l, enum nvme_get_features_sel sel,
 		.uuidx = NVME_UUID_NONE,
 		.data_len = 0,
 		.data = NULL,
-		.timeout = NVME_DEFAULT_IOCTL_TIMEOUT,
 		.result = result,
 	};
 
@@ -931,7 +928,6 @@ int nvme_get_features_host_behavior(nvme_link_t l, enum nvme_get_features_sel se
 		.uuidx = NVME_UUID_NONE,
 		.data_len = sizeof(*data),
 		.data = data,
-		.timeout = NVME_DEFAULT_IOCTL_TIMEOUT,
 		.result = result,
 	};
 
@@ -956,7 +952,6 @@ int nvme_get_features_endurance_event_cfg(nvme_link_t l, enum nvme_get_features_
 		.uuidx = NVME_UUID_NONE,
 		.data_len = 0,
 		.data = NULL,
-		.timeout = NVME_DEFAULT_IOCTL_TIMEOUT,
 		.result = result,
 	};
 
@@ -981,7 +976,6 @@ int nvme_get_features_host_id(nvme_link_t l, enum nvme_get_features_sel sel,
 		.uuidx = NVME_UUID_NONE,
 		.data_len = len,
 		.data = hostid,
-		.timeout = NVME_DEFAULT_IOCTL_TIMEOUT,
 		.result = NULL,
 	};
 
@@ -997,7 +991,6 @@ int nvme_get_features_resv_mask(nvme_link_t l, enum nvme_get_features_sel sel,
 		.nsid = nsid,
 		.sel = sel,
 		.uuidx = NVME_UUID_NONE,
-		.timeout = NVME_DEFAULT_IOCTL_TIMEOUT,
 		.result = result,
 	};
 
@@ -1013,7 +1006,6 @@ int nvme_get_features_resv_persist(nvme_link_t l, enum nvme_get_features_sel sel
 		.nsid = nsid,
 		.sel = sel,
 		.uuidx = NVME_UUID_NONE,
-		.timeout = NVME_DEFAULT_IOCTL_TIMEOUT,
 		.result = result,
 	};
 
@@ -1033,7 +1025,6 @@ int nvme_get_features_write_protect(nvme_link_t l, __u32 nsid,
 		.uuidx = NVME_UUID_NONE,
 		.data_len = 0,
 		.data = NULL,
-		.timeout = NVME_DEFAULT_IOCTL_TIMEOUT,
 		.result = result,
 	};
 
@@ -1135,7 +1126,6 @@ int nvme_directive_send_id_endir(nvme_link_t l, __u32 nsid, bool endir,
 		.cdw12 = cdw12,
 		.data_len = sizeof(*id),
 		.data = id,
-		.timeout = NVME_DEFAULT_IOCTL_TIMEOUT,
 		.result = NULL,
 	};
 
@@ -1887,7 +1877,6 @@ int nvme_lm_get_features_ctrl_data_queue(nvme_link_t l, __u16 cdqid,
 		.cdw11		= cdqid,
 		.data		= data,
 		.data_len	= sizeof(*data),
-		.timeout	= NVME_DEFAULT_IOCTL_TIMEOUT,
 		.result		= result,
 	};
 

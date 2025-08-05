@@ -52,6 +52,7 @@ struct nvme_link {
 	struct list_node ep_entry;
 
 	struct nvme_log *log;
+	__u32 timeout;
 };
 
 struct nvme_path {

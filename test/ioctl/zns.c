@@ -60,7 +60,6 @@ static void test_zns_report_zones(void)
 {
 	__u8 expected_data[8], data[8] = {};
 	__u32 result = 0;
-	uint32_t timeout = 1234;
 	bool extended = true;
 	bool partial = true;
 	enum nvme_zns_report_options opts = NVME_ZNS_ZRAS_REPORT_CLOSED;
@@ -75,7 +74,6 @@ static void test_zns_report_zones(void)
 			 (!!partial << 16),
 		.data_len = sizeof(expected_data),
 		.out_data = &expected_data,
-		.timeout_ms = timeout,
 	};
 
 	int err;
@@ -84,7 +82,7 @@ static void test_zns_report_zones(void)
 	set_mock_io_cmds(&mock_io_cmd, 1);
 	err = nvme_zns_report_zones(test_link, TEST_NSID, TEST_SLBA, opts,
 				    extended, partial, sizeof(data), &data,
-				    timeout, &result);
+				    &result);
 	end_mock_cmds();
 	check(err == 0, "returned error %d", err);
 	check(result == 0, "returned result %u", result);

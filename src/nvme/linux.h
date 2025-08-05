@@ -252,6 +252,21 @@ bool nvme_link_is_mi(nvme_link_t l);
 const char *nvme_link_get_name(nvme_link_t l);
 
 /**
+ * nvme_link_get_timeout - Return the command timeout of the device link handle
+ * @l:		Link handle
+ *
+ * Return: Command timeout [ms]
+ */
+__u32 nvme_link_get_timeout(nvme_link_t l);
+
+/**
+ * nvme_link_set_timeout - Set the command timeout of the device link handle
+ * @l:		Link handle
+ * @timeout:	Timeout in ms
+ */
+void nvme_link_set_timeout(nvme_link_t l, __u32 timeout);
+
+/**
  * enum nvme_hmac_alg - HMAC algorithm
  * @NVME_HMAC_ALG_NONE:		No HMAC algorithm
  * @NVME_HMAC_ALG_SHA2_256:	SHA2-256

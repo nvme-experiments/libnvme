@@ -1225,7 +1225,6 @@ int nvmf_get_discovery_log(nvme_ctrl_t c, struct nvmf_discovery_log **logp,
 	struct nvme_get_discovery_args args = {
 		.c = c,
 		.max_retries = max_retries,
-		.timeout = NVME_DEFAULT_IOCTL_TIMEOUT,
 		.lsp = NVMF_LOG_DISC_LSP_NONE,
 	};
 
@@ -1604,7 +1603,6 @@ static int nvmf_dim(nvme_ctrl_t c, enum nvmf_dim_tas tas, __u8 trtype,
 	struct nvme_dim_args args = {
 		.args_size = sizeof(args),
 		.result = result,
-		.timeout = NVME_DEFAULT_IOCTL_TIMEOUT,
 		.tas = tas
 	};
 
