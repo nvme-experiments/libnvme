@@ -4689,7 +4689,12 @@ static inline int nvme_resv_release(nvme_link_t l, __u32 nsid, __u64 crkey,
 /**
  * nvme_resv_report() - Send an nvme reservation report
  * @l:		Link handle
- * @args:	struct nvme_resv_report_args argument structure
+ * @nsid:	Namespace identifier
+ * @eds:	Request extended Data Structure
+ * @report:	The user space destination address to store the reservation
+ *		report
+ * @len:	Number of bytes to request transferred with this command
+ * @result:	The command completion result from CQE dword0
  *
  * Returns a Reservation Status data structure to memory that describes the
  * registration and reservation status of a namespace. See the definition for
@@ -4698,7 +4703,20 @@ static inline int nvme_resv_release(nvme_link_t l, __u32 nsid, __u64 crkey,
  * Return: 0 on success, the nvme command status if a response was
  * received (see &enum nvme_status_field) or a negative error otherwise.
  */
-int nvme_resv_report(nvme_link_t l, struct nvme_resv_report_args *args);
+static inline int nvme_resv_report(nvme_link_t l, __u32 nsid, bool eds,
+				   struct nvme_resv_status *report, __u32 len, __u32 *result)
+{
+	struct nvme_passthru_cmd cmd = {
+		.opcode		= nvme_cmd_resv_report,
+		.nsid		= nsid,
+		.addr		= (__u64)(uintptr_t)report,
+		.data_len	= len,
+		.cdw10		= (len >> 2) - 1,
+		.cdw11		= (__u32)(eds ? 1 : 0),
+	};
+
+	return nvme_submit_io_passthru(l, &cmd, result);
+}
 
 /**
  * nvme_io_mgmt_recv() - I/O Management Receive command
