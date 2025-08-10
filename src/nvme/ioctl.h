@@ -4617,7 +4617,14 @@ static inline int nvme_resv_acquire(nvme_link_t l, __u32 nsid, __u64 crkey, __u6
 /**
  * nvme_resv_register() - Send an nvme reservation register
  * @l:		Link handle
- * @args:	&struct nvme_resv_register_args argument structure
+ * @nsid:	Namespace identifier
+ * @crkey:	The current reservation key associated with the host
+ * @nrkey:	The new reservation key to be register if action is register or
+ *		replace
+ * @rrega:	The registration action, see &enum nvme_resv_rrega
+ * @cptpl:	Change persist through power loss, see &enum nvme_resv_cptpl
+ * @iekey:	Set to ignore the existing key
+ * @result:	The command completion result from CQE dword0
  *
  * The Reservation Register command registers, unregisters, or replaces a
  * reservation key.
@@ -4625,7 +4632,26 @@ static inline int nvme_resv_acquire(nvme_link_t l, __u32 nsid, __u64 crkey, __u6
  * Return: 0 on success, the nvme command status if a response was
  * received (see &enum nvme_status_field) or a negative error otherwise.
  */
-int nvme_resv_register(nvme_link_t l, struct nvme_resv_register_args *args);
+static inline int nvme_resv_register(nvme_link_t l, __u32 nsid, __u64 crkey, __u64 nrkey,
+				     enum nvme_resv_rrega rrega, enum nvme_resv_cptpl cptpl,
+				     bool iekey, __u32 *result)
+{
+	__le64 payload[2] = {
+		htole64(crkey),
+		htole64(nrkey)
+	};
+	__u32 cdw10 = (rrega & 0x7) | (iekey ? 1 << 3 : 0) | (cptpl << 30);
+
+	struct nvme_passthru_cmd cmd = {
+		.opcode		= nvme_cmd_resv_register,
+		.nsid		= nsid,
+		.addr		= (__u64)(uintptr_t)(payload),
+		.data_len	= sizeof(payload),
+		.cdw10		= cdw10,
+	};
+
+	return nvme_submit_io_passthru(l, &cmd, result);
+}
 
 /**
  * nvme_resv_release() - Send an nvme reservation release
