@@ -52,6 +52,7 @@ features = executable(
     'test-features',
     'features.c',
     dependencies: libnvme_dep,
+    include_directories: [incdir, internal_incdir],
     link_with: mock_ioctl,
 )
 
@@ -61,6 +62,7 @@ identify = executable(
     'test-identify',
     'identify.c',
     dependencies: libnvme_dep,
+    include_directories: [incdir, internal_incdir],
     link_with: mock_ioctl,
 )
 
@@ -70,6 +72,7 @@ logs = executable(
     'test-logs',
     'logs.c',
     dependencies: libnvme_dep,
+    include_directories: [incdir, internal_incdir],
     link_with: mock_ioctl,
 )
 
@@ -79,6 +82,7 @@ zns = executable(
     'test-zns',
     'zns.c',
     dependencies: libnvme_dep,
+    include_directories: [incdir, internal_incdir],
     link_with: mock_ioctl,
 )
 
@@ -88,6 +92,7 @@ misc = executable(
     'test-misc',
     'misc.c',
     dependencies: libnvme_dep,
+    include_directories: [incdir, internal_incdir],
     link_with: mock_ioctl,
 )
 

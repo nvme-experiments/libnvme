@@ -19,6 +19,8 @@
 #include <nvme/types.h>
 #include <nvme/api-types.h>
 
+#include <ccan/endian/endian.h>
+
 /*
  * We can not always count on the kernel UAPI being installed. Use the same
  * 'ifdef' guard to avoid double definitions just in case.
@@ -4577,7 +4579,14 @@ static inline int nvme_copy(nvme_link_t l, __u32 nsid, __u64 sdlba, __u32 ilbrt,
 /**
  * nvme_resv_acquire() - Send an nvme reservation acquire
  * @l:		Link handle
- * @args:	&struct nvme_resv_acquire argument structure
+ * @nsid:	Namespace identifier
+ * @nrkey:	The reservation key to be unregistered from the namespace if
+ *		the action is preempt
+ * @iekey:	Set to ignore the existing key
+ * @rtype:	The type of reservation to be create, see &enum nvme_resv_rtype
+ * @racqa:	The action that is performed by the command, see &enum nvme_resv_racqa
+ * @crkey:	The current reservation key associated with the host
+ * @result:	The command completion result from CQE dword0
  *
  * The Reservation Acquire command acquires a reservation on a namespace,
  * preempt a reservation held on a namespace, and abort a reservation held on a
@@ -4586,7 +4595,26 @@ static inline int nvme_copy(nvme_link_t l, __u32 nsid, __u64 sdlba, __u32 ilbrt,
  * Return: 0 on success, the nvme command status if a response was
  * received (see &enum nvme_status_field) or a negative error otherwise.
  */
-int nvme_resv_acquire(nvme_link_t l, struct nvme_resv_acquire_args *args);
+static inline int nvme_resv_acquire(nvme_link_t l, __u32 nsid, __u64 crkey, __u64 nrkey,
+				    enum nvme_resv_rtype rtype, enum nvme_resv_racqa racqa,
+				    bool iekey, __u32 *result)
+{
+	__le64 payload[2] = {
+		cpu_to_le64(crkey),
+		cpu_to_le64(nrkey)
+	};
+	__u32 cdw10 = (racqa & 0x7) | (iekey ? 1 << 3 : 0) | (rtype << 8);
+
+	struct nvme_passthru_cmd cmd = {
+		.opcode		= nvme_cmd_resv_acquire,
+		.nsid		= nsid,
+		.addr		= (__u64)(uintptr_t)(payload),
+		.data_len	= sizeof(payload),
+		.cdw10		= cdw10,
+	};
+
+	return nvme_submit_io_passthru(l, &cmd, result);
+}
 
 /**
  * nvme_resv_register() - Send an nvme reservation register
