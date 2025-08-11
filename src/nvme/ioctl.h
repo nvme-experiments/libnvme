@@ -5032,12 +5032,26 @@ static inline int nvme_lm_cdq(nvme_link_t l, __u16 mos, __u16 cntlid, __u8 sel, 
 /**
  * nvme_lm_track_send() - Track Send command
  * @l:		Link handle
- * @args:	&struct nvme_lm_track_send_args argument structure
+ * @mos:	Management Operation Specific (MOS): This field is specific to the SEL type
+ * @cdqid:	Controller Data Queue ID (CDQID)
+ * @sel:	Select (SEL): This field specifies the type of management operation to perform
+ * @result:	Set on completion to the command's CQE DWORD 0 controller response
  *
  * Return: 0 on success, the nvme command status if a response was
  * received (see &enum nvme_status_field) or a negative error otherwise.
  */
-int nvme_lm_track_send(nvme_link_t l, struct nvme_lm_track_send_args *args);
+static inline int nvme_lm_track_send(nvme_link_t l, __u16 mos, __u16 cdqid, __u8 sel, __u32 *result)
+{
+	__u32 cdw10 = NVME_SET(sel, LM_TRACK_SEND_SEL) | NVME_SET(mos, LM_TRACK_SEND_MOS);
+
+	struct nvme_passthru_cmd cmd = {
+		.opcode = nvme_admin_track_send,
+		.cdw10 = cdw10,
+		.cdw11 = cdqid,
+	};
+
+	return nvme_submit_admin_passthru(l, &cmd, result);
+}
 
 /**
  * nvme_lm_migration_send() - Migration Send command
