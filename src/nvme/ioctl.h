@@ -2942,58 +2942,92 @@ static inline int nvme_set_features_iocs_profile(nvme_link_t l, __u16 iocsci, bo
 /**
  * nvme_get_features() - Retrieve a feature attribute
  * @l:		Link handle
- * @args:	&struct nvme_get_features_args argument structure
- *
- * Return: 0 on success, the nvme command status if a response was
- * received (see &enum nvme_status_field) or a negative error otherwise.
- */
-int nvme_get_features(nvme_link_t l, struct nvme_get_features_args *args);
-
-/**
- * nvme_get_features_data() - Helper function for @nvme_get_features()
- * @l:		Link handle
- * @fid:	Feature identifier
  * @nsid:	Namespace ID, if applicable
- * @data_len:	Length of feature data, if applicable, in bytes
- * @data:	User address of feature data, if applicable
+ * @cdw11:	Feature specific command dword11 field
+ * @fid:	Feature identifier, see &enum nvme_features_id
+ * @sel:	Select which type of attribute to return,
+ *		see &enum nvme_get_features_sel
+ * @uidx:	UUID Index for differentiating vendor specific encoding
+ * @dptr:	User address of feature data, if applicable
+ * @dptr_len:	Length of feature data, if applicable, in bytes
  * @result:	The command completion result from CQE dword0
  *
  * Return: 0 on success, the nvme command status if a response was
  * received (see &enum nvme_status_field) or a negative error otherwise.
  */
-static inline int nvme_get_features_data(nvme_link_t l, enum nvme_features_id fid,
-			__u32 nsid, __u32 data_len, void *data, __u32 *result)
+static inline int nvme_get_features(nvme_link_t l, __u32 nsid, __u32 cdw11, __u8 fid,
+				    enum nvme_get_features_sel sel, __u8 uidx,
+				    void *dptr, __u32 dptr_len, __u32 *result)
 {
-	struct nvme_get_features_args args = {
-		.result = result,
-		.data = data,
-		.args_size = sizeof(args),
-		.timeout = NVME_DEFAULT_IOCTL_TIMEOUT,
-		.nsid = nsid,
-		.sel = NVME_GET_FEATURES_SEL_CURRENT,
-		.cdw11 = 0,
-		.data_len = data_len,
-		.fid = (__u8)fid,
-		.uuidx = NVME_UUID_NONE,
+	__u32 cdw10 = NVME_SET(fid, FEATURES_CDW10_FID) |
+			NVME_SET(sel, GET_FEATURES_CDW10_SEL);
+	__u32 cdw14 = NVME_SET(uidx, FEATURES_CDW14_UUID);
+
+	struct nvme_passthru_cmd cmd = {
+		.opcode		= nvme_admin_get_features,
+		.nsid		= nsid,
+		.addr		= (__u64)(uintptr_t)dptr,
+		.data_len	= dptr_len,
+		.cdw10		= cdw10,
+		.cdw11		= cdw11,
+		.cdw14		= cdw14,
+		.timeout_ms	= NVME_DEFAULT_IOCTL_TIMEOUT,
 	};
 
-	return nvme_get_features(l, &args);
+	return nvme_submit_admin_passthru(l, &cmd, result);
+}
+
+/**
+ * __nvme_get_features() - Internal helper function for @nvme_get_features()
+ * @l:		Link handle
+ * @fid:	Feature identifier, see &enum nvme_features_id
+ * @sel:	Select which type of attribute to return,
+ *		see &enum nvme_get_features_sel
+ * @result:	The command completion result from CQE dword0
+ *
+ * Return: The nvme command status if a response was received (see
+ * &enum nvme_status_field) or -1 with errno set otherwise.
+ */
+static int __nvme_get_features(nvme_link_t l, enum nvme_features_id fid,
+			       enum nvme_get_features_sel sel, __u32 *result)
+{
+	return nvme_get_features(l, NVME_NSID_NONE, 0, fid, sel, NVME_UUID_NONE,
+				 NULL, 0, result);
+}
+
+/**
+ * nvme_get_features_data() - Helper function for @nvme_get_features()
+ * @l:		Link handle
+ * @nsid:	Namespace ID, if applicable
+ * @fid:	Feature identifier
+ * @dptr:	User address of feature data, if applicable
+ * @dptr_len:	Length of feature data, if applicable, in bytes
+ * @result:	The command completion result from CQE dword0
+ *
+ * Return: 0 on success, the nvme command status if a response was
+ * received (see &enum nvme_status_field) or a negative error otherwise.
+ */
+static inline int nvme_get_features_data(nvme_link_t l, __u32 nsid, enum nvme_features_id fid,
+					 void *dptr, __u32 dptr_len, __u32 *result)
+{
+	return nvme_get_features(l, nsid, 0, fid, NVME_GET_FEATURES_SEL_CURRENT,
+				 NVME_UUID_NONE, dptr, dptr_len, result);
 }
 
 /**
  * nvme_get_features_simple() - Helper function for @nvme_get_features()
  * @l:		Link handle
- * @fid:	Feature identifier
  * @nsid:	Namespace ID, if applicable
+ * @fid:	Feature identifier
  * @result:	The command completion result from CQE dword0
  *
  * Return: 0 on success, the nvme command status if a response was
  * received (see &enum nvme_status_field) or a negative error otherwise.
  */
-static inline int nvme_get_features_simple(nvme_link_t l, enum nvme_features_id fid,
-			__u32 nsid, __u32 *result)
+static inline int nvme_get_features_simple(nvme_link_t l, __u32 nsid, enum nvme_features_id fid,
+					   __u32 *result)
 {
-	return nvme_get_features_data(l, fid, nsid, 0, NULL, result);
+	return nvme_get_features_data(l, nsid, fid, NULL, 0, result);
 }
 
 /**
@@ -3005,8 +3039,11 @@ static inline int nvme_get_features_simple(nvme_link_t l, enum nvme_features_id 
  * Return: 0 on success, the nvme command status if a response was
  * received (see &enum nvme_status_field) or a negative error otherwise.
  */
-int nvme_get_features_arbitration(nvme_link_t l, enum nvme_get_features_sel sel,
-				  __u32 *result);
+static inline int nvme_get_features_arbitration(nvme_link_t l, enum nvme_get_features_sel sel,
+						__u32 *result)
+{
+	return __nvme_get_features(l, NVME_FEAT_FID_ARBITRATION, sel, result);
+}
 
 /**
  * nvme_get_features_power_mgmt() - Get power management feature
@@ -3017,23 +3054,30 @@ int nvme_get_features_arbitration(nvme_link_t l, enum nvme_get_features_sel sel,
  * Return: 0 on success, the nvme command status if a response was
  * received (see &enum nvme_status_field) or a negative error otherwise.
  */
-int nvme_get_features_power_mgmt(nvme_link_t l, enum nvme_get_features_sel sel,
-				 __u32 *result);
+static inline int nvme_get_features_power_mgmt(nvme_link_t l, enum nvme_get_features_sel sel,
+					       __u32 *result)
+{
+	return __nvme_get_features(l, NVME_FEAT_FID_POWER_MGMT, sel, result);
+}
 
 /**
  * nvme_get_features_lba_range() - Get LBA range feature
  * @l:		Link handle
- * @sel:	Select which type of attribute to return, see &enum nvme_get_features_sel
  * @nsid:	Namespace ID
- * @data:	Buffer to receive LBA Range Type data structure
+ * @sel:	Select which type of attribute to return, see &enum nvme_get_features_sel
+ * @dptr:	Buffer to receive LBA Range Type data structure
  * @result:	The command completion result from CQE dword0
  *
  * Return: 0 on success, the nvme command status if a response was
  * received (see &enum nvme_status_field) or a negative error otherwise.
  */
-int nvme_get_features_lba_range(nvme_link_t l, enum nvme_get_features_sel sel,
-				__u32 nsid, struct nvme_lba_range_type *data,
-				__u32 *result);
+static inline int nvme_get_features_lba_range(nvme_link_t l, __u32 nsid,
+					      enum nvme_get_features_sel sel,
+					      struct nvme_lba_range_type *dptr, __u32 *result)
+{
+	return nvme_get_features(l, nsid, 0, NVME_FEAT_FID_LBA_RANGE, sel,
+				 NVME_UUID_NONE, dptr, sizeof(*dptr), result);
+}
 
 /**
  * nvme_get_features_temp_thresh() - Get temperature threshold feature
@@ -3046,22 +3090,34 @@ int nvme_get_features_lba_range(nvme_link_t l, enum nvme_get_features_sel sel,
  * Return: 0 on success, the nvme command status if a response was
  * received (see &enum nvme_status_field) or a negative error otherwise.
  */
-int nvme_get_features_temp_thresh(nvme_link_t l, enum nvme_get_features_sel sel, __u8 tmpsel,
-				  enum nvme_feat_tmpthresh_thsel thsel, __u32 *result);
+static inline int nvme_get_features_temp_thresh(nvme_link_t l, enum nvme_get_features_sel sel,
+						__u8 tmpsel, enum nvme_feat_tmpthresh_thsel thsel,
+						__u32 *result)
+{
+	__u32 cdw11 = NVME_SET(tmpsel, FEAT_TT_TMPSEL) | NVME_SET(thsel, FEAT_TT_THSEL);
+
+	return nvme_get_features(l, NVME_NSID_NONE, cdw11, NVME_FEAT_FID_TEMP_THRESH,
+				 sel, NVME_UUID_NONE, NULL, 0, result);
+}
 
 
 /**
  * nvme_get_features_err_recovery() - Get error recovery feature
  * @l:		Link handle
- * @sel:	Select which type of attribute to return, see &enum nvme_get_features_sel
  * @nsid:	Namespace ID
+ * @sel:	Select which type of attribute to return, see &enum nvme_get_features_sel
  * @result:	The command completion result from CQE dword0
  *
  * Return: 0 on success, the nvme command status if a response was
  * received (see &enum nvme_status_field) or a negative error otherwise.
  */
-int nvme_get_features_err_recovery(nvme_link_t l, enum nvme_get_features_sel sel,
-				    __u32 nsid, __u32 *result);
+static inline int nvme_get_features_err_recovery(nvme_link_t l, __u32 nsid,
+						 enum nvme_get_features_sel sel,
+						 __u32 *result)
+{
+	return nvme_get_features(l, nsid, 0, NVME_FEAT_FID_ERR_RECOVERY, sel,
+				 NVME_UUID_NONE, NULL, 0, result);
+}
 
 /**
  * nvme_get_features_volatile_wc() - Get volatile write cache feature
@@ -3072,8 +3128,11 @@ int nvme_get_features_err_recovery(nvme_link_t l, enum nvme_get_features_sel sel
  * Return: 0 on success, the nvme command status if a response was
  * received (see &enum nvme_status_field) or a negative error otherwise.
  */
-int nvme_get_features_volatile_wc(nvme_link_t l, enum nvme_get_features_sel sel,
-				  __u32 *result);
+static inline int nvme_get_features_volatile_wc(nvme_link_t l, enum nvme_get_features_sel sel,
+						__u32 *result)
+{
+	return __nvme_get_features(l, NVME_FEAT_FID_VOLATILE_WC, sel, result);
+}
 
 /**
  * nvme_get_features_num_queues() - Get number of queues feature
@@ -3084,8 +3143,11 @@ int nvme_get_features_volatile_wc(nvme_link_t l, enum nvme_get_features_sel sel,
  * Return: 0 on success, the nvme command status if a response was
  * received (see &enum nvme_status_field) or a negative error otherwise.
  */
-int nvme_get_features_num_queues(nvme_link_t l, enum nvme_get_features_sel sel,
-				 __u32 *result);
+static inline int nvme_get_features_num_queues(nvme_link_t l, enum nvme_get_features_sel sel,
+					       __u32 *result)
+{
+	return __nvme_get_features(l, NVME_FEAT_FID_NUM_QUEUES, sel, result);
+}
 
 /**
  * nvme_get_features_irq_coalesce() - Get IRQ coalesce feature
@@ -3096,21 +3158,31 @@ int nvme_get_features_num_queues(nvme_link_t l, enum nvme_get_features_sel sel,
  * Return: 0 on success, the nvme command status if a response was
  * received (see &enum nvme_status_field) or a negative error otherwise.
  */
-int nvme_get_features_irq_coalesce(nvme_link_t l, enum nvme_get_features_sel sel,
-				   __u32 *result);
+static inline int nvme_get_features_irq_coalesce(nvme_link_t l, enum nvme_get_features_sel sel,
+						 __u32 *result)
+{
+	return __nvme_get_features(l, NVME_FEAT_FID_IRQ_COALESCE, sel, result);
+}
 
 /**
  * nvme_get_features_irq_config() - Get IRQ config feature
  * @l:		Link handle
  * @sel:	Select which type of attribute to return, see &enum nvme_get_features_sel
- * @iv:
+ * @iv:		Interrupt Vector
+ * @cd:		Coalescing Disable
  * @result:	The command completion result from CQE dword0
  *
  * Return: 0 on success, the nvme command status if a response was
  * received (see &enum nvme_status_field) or a negative error otherwise.
  */
-int nvme_get_features_irq_config(nvme_link_t l, enum nvme_get_features_sel sel,
-				 __u16 iv, __u32 *result);
+static inline int nvme_get_features_irq_config(nvme_link_t l, enum nvme_get_features_sel sel,
+					       __u16 iv, bool cd, __u32 *result)
+{
+	__u32 cdw11 = NVME_SET(iv, FEAT_ICFG_IV) | NVME_SET(cd, FEAT_ICFG_CD);
+
+	return nvme_get_features(l, NVME_NSID_NONE, cdw11, NVME_FEAT_FID_IRQ_CONFIG,
+				 sel, NVME_UUID_NONE, NULL, 0, result);
+}
 
 /**
  * nvme_get_features_write_atomic() - Get write atomic feature
@@ -3121,8 +3193,11 @@ int nvme_get_features_irq_config(nvme_link_t l, enum nvme_get_features_sel sel,
  * Return: 0 on success, the nvme command status if a response was
  * received (see &enum nvme_status_field) or a negative error otherwise.
  */
-int nvme_get_features_write_atomic(nvme_link_t l, enum nvme_get_features_sel sel,
-				   __u32 *result);
+static inline int nvme_get_features_write_atomic(nvme_link_t l, enum nvme_get_features_sel sel,
+						 __u32 *result)
+{
+	return __nvme_get_features(l, NVME_FEAT_FID_WRITE_ATOMIC, sel, result);
+}
 
 /**
  * nvme_get_features_async_event() - Get asynchronous event feature
@@ -3133,21 +3208,28 @@ int nvme_get_features_write_atomic(nvme_link_t l, enum nvme_get_features_sel sel
  * Return: 0 on success, the nvme command status if a response was
  * received (see &enum nvme_status_field) or a negative error otherwise.
  */
-int nvme_get_features_async_event(nvme_link_t l, enum nvme_get_features_sel sel,
-				  __u32 *result);
+static inline int nvme_get_features_async_event(nvme_link_t l, enum nvme_get_features_sel sel,
+						__u32 *result)
+{
+	return __nvme_get_features(l, NVME_FEAT_FID_ASYNC_EVENT, sel, result);
+}
 
 /**
  * nvme_get_features_auto_pst() - Get autonomous power state feature
  * @l:		Link handle
  * @sel:	Select which type of attribute to return, see &enum nvme_get_features_sel
- * @apst:
+ * @apst:	Autonomous Power State Transition
  * @result:	The command completion result from CQE dword0
  *
  * Return: 0 on success, the nvme command status if a response was
  * received (see &enum nvme_status_field) or a negative error otherwise.
  */
-int nvme_get_features_auto_pst(nvme_link_t l, enum nvme_get_features_sel sel,
-			       struct nvme_feat_auto_pst *apst, __u32 *result);
+static inline int nvme_get_features_auto_pst(nvme_link_t l, enum nvme_get_features_sel sel,
+					     struct nvme_feat_auto_pst *apst, __u32 *result)
+{
+	return nvme_get_features(l, NVME_NSID_NONE, 0, NVME_FEAT_FID_AUTO_PST, sel,
+				 NVME_UUID_NONE, apst, sizeof(*apst), result);
+}
 
 /**
  * nvme_get_features_host_mem_buf() - Get host memory buffer feature
@@ -3159,9 +3241,13 @@ int nvme_get_features_auto_pst(nvme_link_t l, enum nvme_get_features_sel sel,
  * Return: 0 on success, the nvme command status if a response was
  * received (see &enum nvme_status_field) or a negative error otherwise.
  */
-int nvme_get_features_host_mem_buf(nvme_link_t l, enum nvme_get_features_sel sel,
-				   struct nvme_host_mem_buf_attrs *attrs,
-				   __u32 *result);
+static inline int nvme_get_features_host_mem_buf(nvme_link_t l, enum nvme_get_features_sel sel,
+						 struct nvme_host_mem_buf_attrs *attrs,
+						 __u32 *result)
+{
+	return nvme_get_features(l, NVME_NSID_NONE, 0, NVME_FEAT_FID_HOST_MEM_BUF,
+				 sel, NVME_UUID_NONE, attrs, sizeof(*attrs), result);
+}
 
 /**
  * nvme_get_features_timestamp() - Get timestamp feature
@@ -3172,8 +3258,12 @@ int nvme_get_features_host_mem_buf(nvme_link_t l, enum nvme_get_features_sel sel
  * Return: 0 on success, the nvme command status if a response was
  * received (see &enum nvme_status_field) or a negative error otherwise.
  */
-int nvme_get_features_timestamp(nvme_link_t l, enum nvme_get_features_sel sel,
-				struct nvme_timestamp *ts);
+static inline int nvme_get_features_timestamp(nvme_link_t l, enum nvme_get_features_sel sel,
+					      struct nvme_timestamp *ts)
+{
+	return nvme_get_features(l, NVME_NSID_NONE, 0, NVME_FEAT_FID_TIMESTAMP,
+				 sel, NVME_UUID_NONE, ts, sizeof(*ts), NULL);
+}
 
 /**
  * nvme_get_features_kato() - Get keep alive timeout feature
@@ -3184,7 +3274,11 @@ int nvme_get_features_timestamp(nvme_link_t l, enum nvme_get_features_sel sel,
  * Return: 0 on success, the nvme command status if a response was
  * received (see &enum nvme_status_field) or a negative error otherwise.
  */
-int nvme_get_features_kato(nvme_link_t l, enum nvme_get_features_sel sel, __u32 *result);
+static inline int nvme_get_features_kato(nvme_link_t l, enum nvme_get_features_sel sel,
+					 __u32 *result)
+{
+	return __nvme_get_features(l, NVME_FEAT_FID_KATO, sel, result);
+}
 
 /**
  * nvme_get_features_hctm() - Get thermal management feature
@@ -3195,7 +3289,11 @@ int nvme_get_features_kato(nvme_link_t l, enum nvme_get_features_sel sel, __u32 
  * Return: 0 on success, the nvme command status if a response was
  * received (see &enum nvme_status_field) or a negative error otherwise.
  */
-int nvme_get_features_hctm(nvme_link_t l, enum nvme_get_features_sel sel, __u32 *result);
+static inline int nvme_get_features_hctm(nvme_link_t l, enum nvme_get_features_sel sel,
+					 __u32 *result)
+{
+	return __nvme_get_features(l, NVME_FEAT_FID_HCTM, sel, result);
+}
 
 /**
  * nvme_get_features_nopsc() - Get non-operational power state feature
@@ -3206,7 +3304,11 @@ int nvme_get_features_hctm(nvme_link_t l, enum nvme_get_features_sel sel, __u32 
  * Return: 0 on success, the nvme command status if a response was
  * received (see &enum nvme_status_field) or a negative error otherwise.
  */
-int nvme_get_features_nopsc(nvme_link_t l, enum nvme_get_features_sel sel, __u32 *result);
+static inline int nvme_get_features_nopsc(nvme_link_t l, enum nvme_get_features_sel sel,
+					  __u32 *result)
+{
+	return __nvme_get_features(l, NVME_FEAT_FID_NOPSC, sel, result);
+}
 
 /**
  * nvme_get_features_rrl() - Get read recovery level feature
@@ -3217,22 +3319,30 @@ int nvme_get_features_nopsc(nvme_link_t l, enum nvme_get_features_sel sel, __u32
  * Return: 0 on success, the nvme command status if a response was
  * received (see &enum nvme_status_field) or a negative error otherwise.
  */
-int nvme_get_features_rrl(nvme_link_t l, enum nvme_get_features_sel sel, __u32 *result);
+static inline int nvme_get_features_rrl(nvme_link_t l, enum nvme_get_features_sel sel,
+					__u32 *result)
+{
+	return __nvme_get_features(l, NVME_FEAT_FID_RRL, sel, result);
+}
 
 /**
  * nvme_get_features_plm_config() - Get predictable latency feature
  * @l:		Link handle
  * @sel:	Select which type of attribute to return, see &enum nvme_get_features_sel
  * @nvmsetid:	NVM set id
- * @data:
+ * @dptr:	Buffer for returned Predictable Latency Mode Config
  * @result:	The command completion result from CQE dword0
  *
  * Return: 0 on success, the nvme command status if a response was
  * received (see &enum nvme_status_field) or a negative error otherwise.
  */
-int nvme_get_features_plm_config(nvme_link_t l, enum nvme_get_features_sel sel,
-				 __u16 nvmsetid, struct nvme_plm_config *data,
-				 __u32 *result);
+static inline int nvme_get_features_plm_config(nvme_link_t l, enum nvme_get_features_sel sel,
+					       __u16 nvmsetid, struct nvme_plm_config *dptr,
+					       __u32 *result)
+{
+	return nvme_get_features(l, NVME_NSID_NONE, nvmsetid, NVME_FEAT_FID_PLM_CONFIG,
+				 sel, NVME_UUID_NONE, dptr, sizeof(*dptr), result);
+}
 
 /**
  * nvme_get_features_plm_window() - Get window select feature
@@ -3244,8 +3354,12 @@ int nvme_get_features_plm_config(nvme_link_t l, enum nvme_get_features_sel sel,
  * Return: 0 on success, the nvme command status if a response was
  * received (see &enum nvme_status_field) or a negative error otherwise.
  */
-int nvme_get_features_plm_window(nvme_link_t l, enum nvme_get_features_sel sel,
-	__u16 nvmsetid, __u32 *result);
+static inline int nvme_get_features_plm_window(nvme_link_t l, enum nvme_get_features_sel sel,
+					       __u16 nvmsetid, __u32 *result)
+{
+	return nvme_get_features(l, NVME_NSID_NONE, nvmsetid, NVME_FEAT_FID_PLM_WINDOW,
+				 sel, NVME_UUID_NONE, NULL, 0, result);
+}
 
 /**
  * nvme_get_features_lba_sts_interval() - Get LBA status information feature
@@ -3256,22 +3370,29 @@ int nvme_get_features_plm_window(nvme_link_t l, enum nvme_get_features_sel sel,
  * Return: 0 on success, the nvme command status if a response was
  * received (see &enum nvme_status_field) or a negative error otherwise.
  */
-int nvme_get_features_lba_sts_interval(nvme_link_t l, enum nvme_get_features_sel sel,
-				       __u32 *result);
+static inline int nvme_get_features_lba_sts_interval(nvme_link_t l, enum nvme_get_features_sel sel,
+						     __u32 *result)
+{
+	return __nvme_get_features(l, NVME_FEAT_FID_LBA_STS_INTERVAL, sel, result);
+}
 
 /**
  * nvme_get_features_host_behavior() - Get host behavior feature
  * @l:		Link handle
  * @sel:	Select which type of attribute to return, see &enum nvme_get_features_sel
- * @data:	Pointer to structure nvme_feat_host_behavior
+ * @dptr:	Pointer to structure nvme_feat_host_behavior
  * @result:	The command completion result from CQE dword0
  *
  * Return: 0 on success, the nvme command status if a response was
  * received (see &enum nvme_status_field) or a negative error otherwise.
  */
-int nvme_get_features_host_behavior(nvme_link_t l, enum nvme_get_features_sel sel,
-				    struct nvme_feat_host_behavior *data,
-				    __u32 *result);
+static inline int nvme_get_features_host_behavior(nvme_link_t l, enum nvme_get_features_sel sel,
+						  struct nvme_feat_host_behavior *dptr,
+						  __u32 *result)
+{
+	return nvme_get_features(l, NVME_NSID_NONE, 0, NVME_FEAT_FID_HOST_BEHAVIOR,
+				 sel, NVME_UUID_NONE, dptr, sizeof(*dptr), result);
+}
 
 /**
  * nvme_get_features_sanitize() - Get sanitize feature
@@ -3282,8 +3403,11 @@ int nvme_get_features_host_behavior(nvme_link_t l, enum nvme_get_features_sel se
  * Return: 0 on success, the nvme command status if a response was
  * received (see &enum nvme_status_field) or a negative error otherwise.
  */
-int nvme_get_features_sanitize(nvme_link_t l, enum nvme_get_features_sel sel,
-				__u32 *result);
+static inline int nvme_get_features_sanitize(nvme_link_t l, enum nvme_get_features_sel sel,
+					     __u32 *result)
+{
+	return __nvme_get_features(l, NVME_FEAT_FID_SANITIZE, sel, result);
+}
 
 /**
  * nvme_get_features_endurance_event_cfg() - Get endurance event config feature
@@ -3295,8 +3419,13 @@ int nvme_get_features_sanitize(nvme_link_t l, enum nvme_get_features_sel sel,
  * Return: 0 on success, the nvme command status if a response was
  * received (see &enum nvme_status_field) or a negative error otherwise.
  */
-int nvme_get_features_endurance_event_cfg(nvme_link_t l, enum nvme_get_features_sel sel,
-					  __u16 endgid, __u32 *result);
+static inline int nvme_get_features_endurance_event_cfg(nvme_link_t l,
+							enum nvme_get_features_sel sel,
+							__u16 endgid, __u32 *result)
+{
+	return nvme_get_features(l, NVME_NSID_NONE, endgid, NVME_FEAT_FID_ENDURANCE_EVT_CFG,
+				 sel, NVME_UUID_NONE, NULL, 0, result);
+}
 
 /**
  * nvme_get_features_sw_progress() - Get software progress feature
@@ -3307,8 +3436,11 @@ int nvme_get_features_endurance_event_cfg(nvme_link_t l, enum nvme_get_features_
  * Return: 0 on success, the nvme command status if a response was
  * received (see &enum nvme_status_field) or a negative error otherwise.
  */
-int nvme_get_features_sw_progress(nvme_link_t l, enum nvme_get_features_sel sel,
-				  __u32 *result);
+static inline int nvme_get_features_sw_progress(nvme_link_t l, enum nvme_get_features_sel sel,
+						__u32 *result)
+{
+	return __nvme_get_features(l, NVME_FEAT_FID_SW_PROGRESS, sel, result);
+}
 
 /**
  * nvme_get_features_host_id() - Get host id feature
@@ -3321,34 +3453,48 @@ int nvme_get_features_sw_progress(nvme_link_t l, enum nvme_get_features_sel sel,
  * Return: 0 on success, the nvme command status if a response was
  * received (see &enum nvme_status_field) or a negative error otherwise.
  */
-int nvme_get_features_host_id(nvme_link_t l, enum nvme_get_features_sel sel,
-			      bool exhid, __u32 len, __u8 *hostid);
+static inline int nvme_get_features_host_id(nvme_link_t l, enum nvme_get_features_sel sel,
+					    bool exhid, __u32 len, __u8 *hostid)
+{
+	return nvme_get_features(l, NVME_NSID_NONE, !!exhid, NVME_FEAT_FID_HOST_ID,
+				 sel, NVME_UUID_NONE, hostid, len, NULL);
+}
 
 /**
  * nvme_get_features_resv_mask() - Get reservation mask feature
  * @l:		Link handle
- * @sel:	Select which type of attribute to return, see &enum nvme_get_features_sel
  * @nsid:	Namespace ID
+ * @sel:	Select which type of attribute to return, see &enum nvme_get_features_sel
  * @result:	The command completion result from CQE dword0
  *
  * Return: 0 on success, the nvme command status if a response was
  * received (see &enum nvme_status_field) or a negative error otherwise.
  */
-int nvme_get_features_resv_mask(nvme_link_t l, enum nvme_get_features_sel sel,
-				__u32 nsid, __u32 *result);
+static inline int nvme_get_features_resv_mask(nvme_link_t l, __u32 nsid,
+					      enum nvme_get_features_sel sel,
+					      __u32 *result)
+{
+	return nvme_get_features(l, nsid, 0, NVME_FEAT_FID_RESV_MASK,
+				 sel, NVME_UUID_NONE, NULL, 0, result);
+}
 
 /**
  * nvme_get_features_resv_persist() - Get reservation persist feature
  * @l:		Link handle
- * @sel:	Select which type of attribute to return, see &enum nvme_get_features_sel
  * @nsid:	Namespace ID
+ * @sel:	Select which type of attribute to return, see &enum nvme_get_features_sel
  * @result:	The command completion result from CQE dword0
  *
  * Return: 0 on success, the nvme command status if a response was
  * received (see &enum nvme_status_field) or a negative error otherwise.
  */
-int nvme_get_features_resv_persist(nvme_link_t l, enum nvme_get_features_sel sel,
-				   __u32 nsid, __u32 *result);
+static inline int nvme_get_features_resv_persist(nvme_link_t l, __u32 nsid,
+						 enum nvme_get_features_sel sel,
+						 __u32 *result)
+{
+	return nvme_get_features(l, nsid, 0, NVME_FEAT_FID_RESV_PERSIST,
+				 sel, NVME_UUID_NONE, NULL, 0, result);
+}
 
 /**
  * nvme_get_features_write_protect() - Get write protect feature
@@ -3360,9 +3506,13 @@ int nvme_get_features_resv_persist(nvme_link_t l, enum nvme_get_features_sel sel
  * Return: 0 on success, the nvme command status if a response was
  * received (see &enum nvme_status_field) or a negative error otherwise.
  */
-int nvme_get_features_write_protect(nvme_link_t l, __u32 nsid,
-				    enum nvme_get_features_sel sel,
-				    __u32 *result);
+static inline int nvme_get_features_write_protect(nvme_link_t l, __u32 nsid,
+						  enum nvme_get_features_sel sel,
+						  __u32 *result)
+{
+	return nvme_get_features(l, nsid, 0, NVME_FEAT_FID_WRITE_PROTECT,
+				 sel, NVME_UUID_NONE, NULL, 0, result);
+}
 
 /**
  * nvme_get_features_iocs_profile() - Get IOCS profile feature
@@ -3373,8 +3523,11 @@ int nvme_get_features_write_protect(nvme_link_t l, __u32 nsid,
  * Return: 0 on success, the nvme command status if a response was
  * received (see &enum nvme_status_field) or a negative error otherwise.
  */
-int nvme_get_features_iocs_profile(nvme_link_t l, enum nvme_get_features_sel sel,
-				   __u32 *result);
+static inline int nvme_get_features_iocs_profile(nvme_link_t l, enum nvme_get_features_sel sel,
+						 __u32 *result)
+{
+	return __nvme_get_features(l, NVME_FEAT_FID_IOCS_PROFILE, sel, result);
+}
 
 /**
  * nvme_format_nvm() - Format nvme namespace(s)
@@ -5045,14 +5198,21 @@ static inline int nvme_lm_set_features_ctrl_data_queue(nvme_link_t l, __u16 cdqi
 /**
  * nvme_lm_get_features_ctrl_data_queue - Get Controller Data Queue feature
  * @l:		Link handle
+ * @sel:	Select which type of attribute to return, see &enum nvme_get_features_sel
  * @cdqid:	Controller Data Queue ID (CDQID)
- * @data:	Get Controller Data Queue feature data
+ * @dptr:	Get Controller Data Queue feature data
  * @result:	The command completions result from CQE dword0
  *
  * Return: 0 on success, the nvme command status if a response was
  * received (see &enum nvme_status_field) or a negative error otherwise.
  */
-int nvme_lm_get_features_ctrl_data_queue(nvme_link_t l, __u16 cdqid,
-					 struct nvme_lm_ctrl_data_queue_fid_data *data,
-					 __u32 *result);
+static inline int nvme_lm_get_features_ctrl_data_queue(nvme_link_t l,
+					 enum nvme_get_features_sel sel,
+					 __u16 cdqid,
+					 struct nvme_lm_ctrl_data_queue_fid_data *dptr,
+					 __u32 *result)
+{
+	return nvme_get_features(l, NVME_NSID_NONE, cdqid, NVME_FEAT_FID_CTRL_DATA_QUEUE,
+				 sel, NVME_UUID_NONE, dptr, sizeof(*dptr), result);
+}
 #endif /* _LIBNVME_IOCTL_H */
