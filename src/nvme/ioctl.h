@@ -4982,12 +4982,69 @@ static inline int nvme_zns_report_zones(nvme_link_t l, __u32 nsid, __u64 slba,
 /**
  * nvme_zns_append() - Append data to a zone
  * @l:		Link handle
- * @args:	&struct nvme_zns_append_args argument structure
+ * @nsid:	Namespace ID
+ * @zslba:	Zone start logical block address
+ * @nlb:	Number of logical blocks
+ * @control:    Upper 16 bits of cdw12
+ * @cev:	Command Extension Value
+ * @dspec:	Directive Specific
+ * @elbas:	Extended LBA Formats Supported
+ *		(see Controller Attributes (CTRATT))
+ * @sts:	Storage tag size in bits, set by namespace Extended LBA Format
+ * @pif:	Protection information format, determines how variable sized
+ *		storage_tag and reftag are put into dwords 2, 3, and 14. Set by
+ *		namespace Extended LBA Format.
+ * @storage_tag: This filed specifies Variable Sized Expected Logical Block
+ *		Storage Tag (ELBST) or Logical Block Storage Tag (LBST)
+ * @reftag:	This field specifies the variable sized Expected Initial
+ *		Logical Block Reference Tag (EILBRT) or Initial Logical Block
+ *		Reference Tag (ILBRT). It is the 8 byte version required for
+ *		enhanced protection information.  Used only if the namespace is
+ *		formatted to use end-to-end protection information.
+ * @lbat:	Logical block application tag
+ * @lbatm:	Logical block application tag mask
+ * @data:	Userspace address of the data
+ * @data_len:	Length of @data
+ * @metadata:	Userspace address of the metadata
+ * @metadata_len: Length of @metadata
+ * @result:	The command completion result from CQE dword0
  *
  * Return: 0 on success, the nvme command status if a response was
  * received (see &enum nvme_status_field) or a negative error otherwise.
  */
-int nvme_zns_append(nvme_link_t l, struct nvme_zns_append_args *args);
+static inline int nvme_zns_append(nvme_link_t l, __u32 nsid, __u64 zslba, __u16 nlb,
+				  __u16 control, __u16 cev, __u16 dspec,
+				  bool elbas, __u8 sts, __u8 pif, __u64 storage_tag, __u64 reftag,
+				  __u16 lbat, __u16 lbatm,
+				  void *data, __u32 data_len,
+				  void *metadata, __u32 metadata_len,
+				  __u64 *result)
+{
+	__u32 cdw10 = zslba & 0xffffffff;
+	__u32 cdw11 = zslba >> 32;
+	__u32 cdw12 = nlb | (control << 16);
+	__u32 cdw15 = lbat | (lbatm << 16);
+
+	struct nvme_passthru_cmd64 cmd = {
+		.opcode		= nvme_zns_cmd_append,
+		.nsid		= nsid,
+		.metadata	= (__u64)(uintptr_t)metadata,
+		.addr		= (__u64)(uintptr_t)data,
+		.metadata_len	= metadata_len,
+		.data_len	= data_len,
+		.cdw10		= cdw10,
+		.cdw11		= cdw11,
+		.cdw12		= cdw12,
+		.cdw15		= cdw15,
+	};
+
+	if (elbas &&
+	    nvme_set_var_size_tags(pif, sts, reftag, storage_tag,
+				   &cmd.cdw2, &cmd.cdw3, &cmd.cdw14))
+		return -EINVAL;
+
+	return nvme_submit_io_passthru64(l, &cmd, result);
+}
 
 /**
  * nvme_dim_send - Send a Discovery Information Management (DIM) command
