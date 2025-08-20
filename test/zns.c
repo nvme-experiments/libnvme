@@ -48,8 +48,7 @@ static void show_zns_properties(nvme_ns_t n)
 
 	if (nvme_zns_report_zones(nvme_ns_get_link(n), nvme_ns_get_nsid(n), 0,
 				  NVME_ZNS_ZRAS_REPORT_ALL, false,
-				  true, 0x1000, (void *)zr,
-				  NVME_DEFAULT_IOCTL_TIMEOUT, &result)) {
+				  true, 0x1000, (void *)zr, &result)) {
 		fprintf(stderr, "failed to report zones, result %x\n",
 			le32_to_cpu(result));
 		free(zr);
