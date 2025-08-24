@@ -1389,7 +1389,7 @@ static inline int nvme_get_log(nvme_link_t l,
 		.cdw14		= cdw14,
 	};
 
-return nvme_get_log_partial(l, &cmd, lpo, log, len, xfer_len, result);
+	return nvme_get_log_partial(l, &cmd, lpo, log, len, xfer_len, result);
 }
 
 static inline int nvme_get_nsid_log(nvme_link_t l, __u32 nsid, bool rae,
