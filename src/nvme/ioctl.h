@@ -3969,7 +3969,14 @@ int nvme_get_property(nvme_link_t l, struct nvme_get_property_args *args);
 /**
  * nvme_sanitize_nvm() - Start a sanitize operation
  * @l:		Link handle
- * @args:	&struct nvme_sanitize_nvm_args argument structure
+ * @ovrpat:	Overwrite pattern
+ * @sanact:	Sanitize action, see &enum nvme_sanitize_sanact
+ * @ause:	Set to allow unrestricted sanitize exit
+ * @owpass:	Overwrite pass count
+ * @oipbp:	Set to overwrite invert pattern between passes
+ * @nodas:	Set to not deallocate blocks after sanitizing
+ * @emvs:	Set to enter media verification state
+ * @result:	The command completion result from CQE dword0
  *
  * A sanitize operation alters all user data in the NVM subsystem such that
  * recovery of any previous user data from any cache, the non-volatile media,
@@ -3984,7 +3991,26 @@ int nvme_get_property(nvme_link_t l, struct nvme_get_property_args *args);
  * Return: 0 on success, the nvme command status if a response was
  * received (see &enum nvme_status_field) or a negative error otherwise.
  */
-int nvme_sanitize_nvm(nvme_link_t l, struct nvme_sanitize_nvm_args *args);
+static inline int nvme_sanitize_nvm(nvme_link_t l, enum nvme_sanitize_sanact sanact, __u32 ovrpat,
+				    bool ause, __u8 owpass, bool oipbp, bool nodas, bool emvs,
+				    __u32 *result)
+{
+	__u32 cdw10 = NVME_SET(sanact, SANITIZE_CDW10_SANACT) |
+		      NVME_SET(!!ause, SANITIZE_CDW10_AUSE) |
+		      NVME_SET(owpass, SANITIZE_CDW10_OWPASS) |
+		      NVME_SET(!!oipbp, SANITIZE_CDW10_OIPBP) |
+		      NVME_SET(!!nodas, SANITIZE_CDW10_NODAS) |
+		      NVME_SET(!!emvs, SANITIZE_CDW10_EMVS);
+	__u32 cdw11 = ovrpat;
+
+	struct nvme_passthru_cmd cmd = {
+		.opcode = nvme_admin_sanitize_nvm,
+		.cdw10 = cdw10,
+		.cdw11 = cdw11,
+	};
+
+	return nvme_submit_admin_passthru(l, &cmd, result);
+}
 
 /**
  * nvme_dev_self_test() - Start or abort a self test
