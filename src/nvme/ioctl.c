@@ -410,7 +410,7 @@ int nvme_get_log_partial(nvme_link_t l, struct nvme_passthru_cmd *cmd,
 	struct stat st;
 	bool use_uring = false;
 
-	if (io_uring_kernel_support == IO_URING_AVAILABLE) {
+	if (io_uring_kernel_support == IO_URING_AVAILABLE && l->type == NVME_LINK_TYPE_DIRECT) {
 		if (fstat(l->fd, &st) == 0 && S_ISCHR(st.st_mode)) {
 			use_uring = true;
 
