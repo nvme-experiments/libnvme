@@ -3972,12 +3972,31 @@ static inline int nvme_directive_recv_stream_allocate(nvme_link_t l, __u32 nsid,
 /**
  * nvme_capacity_mgmt() - Capacity management command
  * @l:		Link handle
- * @args:	&struct nvme_capacity_mgmt_args argument structure
+ * @cdw11:	Least significant 32 bits of the capacity in bytes of the
+ *		Endurance Group or NVM Set to be created
+ * @cdw12:	Most significant 32 bits of the capacity in bytes of the
+ *		Endurance Group or NVM Set to be created
+ * @element_id:	Value specific to the value of the Operation field
+ * @op:		Operation to be performed by the controller
+ * @result:	If successful, the CQE dword0 value
  *
  * Return: 0 on success, the nvme command status if a response was
  * received (see &enum nvme_status_field) or a negative error otherwise.
  */
-int nvme_capacity_mgmt(nvme_link_t l, struct nvme_capacity_mgmt_args *args);
+static inline int nvme_capacity_mgmt(nvme_link_t l, __u32 cdw11, __u32 cdw12, __u16 element_id,
+				     __u8 op, __u32 *result)
+{
+	__u32 cdw10 = op | element_id << 16;
+
+	struct nvme_passthru_cmd cmd = {
+		.opcode = nvme_admin_capacity_mgmt,
+		.cdw10 = cdw10,
+		.cdw11 = cdw11,
+		.cdw12 = cdw12,
+	};
+
+	return nvme_submit_admin_passthru(l, &cmd, result);
+}
 
 /**
  * nvme_lockdown() - Issue lockdown command
