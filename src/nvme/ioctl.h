@@ -4653,7 +4653,6 @@ static inline int nvme_compare(nvme_link_t l, __u32 nsid, __u64 slba, __u64 stor
  *		Reference Tag (ILBRT). Used only if the namespace is formatted
  *		to use end-to-end protection information.
  * @dspec:	Directive specific value
- * @dsm:	Data set management attributes, see &enum nvme_io_dsm_flags
  * @reftag_u64:	This field specifies the variable sized Expected Initial
  *		Logical Block Reference Tag (EILBRT) or Initial Logical Block
  *		Reference Tag (ILBRT). It is the 8 byte version required for
@@ -4663,10 +4662,6 @@ static inline int nvme_compare(nvme_link_t l, __u32 nsid, __u64 slba, __u64 stor
  * @pif:	Protection information format, determines how variable sized
  *		storage_tag and reftag are put into dwords 2, 3, and 14. Set by
  *		namespace Extended LBA Format.
- * @data:	Pointer to user address of the data buffer
- * @data_len:	Length of user buffer, @data, in bytes
- * @metadata:	Pointer to user address of the metadata buffer
- * @metadata_len:Length of user buffer, @metadata, in bytes
  * @result:	The command completion result from CQE dword0
  *
  * The Write Zeroes command sets a range of logical blocks to zero.  After
@@ -4679,13 +4674,11 @@ static inline int nvme_compare(nvme_link_t l, __u32 nsid, __u64 slba, __u64 stor
  */
 static inline int nvme_write_zeros(nvme_link_t l, __u32 nsid, __u64 slba, __u64 storage_tag,
 				   __u32 reftag, __u16 nlb, __u16 control, __u16 apptag,
-				   __u16 appmask, __u16 dspec, __u8 dsm, __u64 reftag_u64, __u8 sts,
-				   __u8 pif, void *data, __u32 data_len, void *metadata,
-				   __u32 metadata_len, __u32 *result)
+				   __u16 appmask, __u16 dspec, __u64 reftag_u64, __u8 sts, __u8 pif,
+				   __u32 *result)
 {
 	return nvme_io(l, nvme_cmd_write_zeroes, nsid, slba, storage_tag, reftag, nlb, control,
-		       apptag, appmask, dspec, dsm, reftag_u64, sts, pif, data, data_len, metadata,
-		       metadata_len, result);
+		       apptag, appmask, dspec, 0, reftag_u64, sts, pif, NULL, 0, NULL, 0, result);
 }
 
 /**

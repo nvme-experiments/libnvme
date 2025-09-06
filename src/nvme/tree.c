@@ -2484,7 +2484,7 @@ int nvme_ns_write_zeros(nvme_ns_t n, off_t offset, size_t count)
 		return -1;
 
 	return nvme_write_zeros(nvme_ns_get_link(n), nvme_ns_get_nsid(n), slba, 0, 0, nlb, 0, 0, 0,
-				0, 0, 0, 0, 0, NULL, 0, NULL, 0, NULL);
+				0, 0, 0, 0, NULL);
 }
 
 int nvme_ns_write(nvme_ns_t n, void *buf, off_t offset, size_t count)

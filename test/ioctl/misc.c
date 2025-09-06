@@ -865,15 +865,14 @@ static void test_compare(void)
 
 static void test_write_zeros(void)
 {
-	__u8 expected_data[512], data[512] = {};
 	__u32 result = 0;
 	__u64 slba = 0x0;
 	__u16 nlb = 0xffff;
 	__u16 control = NVME_IO_LR;
-	__u8 dsm = NVME_IO_DSM_FREQ_ONCE;
 	__u16 dspec = 0xbb;
 	__u16 apptag = 0xfa;
 	__u16 appmask = 0x72;
+	int err;
 
 	struct mock_cmd mock_io_cmd = {
 		.opcode = nvme_cmd_write_zeroes,
@@ -881,20 +880,13 @@ static void test_write_zeros(void)
 		.cdw10 = slba & 0xffffffff,
 		.cdw11 = slba >> 32,
 		.cdw12 = nlb | (control << 16),
-		.cdw13 = dsm | (dspec << 16),
+		.cdw13 = dspec << 16,
 		.cdw15 = apptag | (appmask << 16),
-		.data_len = sizeof(data),
-		.in_data = &data,
 	};
 
-	int err;
-
-	arbitrary(&expected_data, sizeof(expected_data));
-	memcpy(&data, &expected_data, sizeof(expected_data));
 	set_mock_io_cmds(&mock_io_cmd, 1);
 	err = nvme_write_zeros(test_link, TEST_NSID, slba, 0xab, 0xff, nlb, control, apptag,
-			       appmask, dspec, dsm, 0, 0, 0, &expected_data, sizeof(expected_data),
-			       NULL, 0, &result);
+			       appmask, dspec, 0, 0, 0, &result);
 	end_mock_cmds();
 	check(err == 0, "returned error %d", err);
 	check(result == 0, "returned result %u", result);
