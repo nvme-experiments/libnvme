@@ -74,7 +74,7 @@ static int nvme_ctrl_scan_namespace(nvme_root_t r, struct nvme_ctrl *c,
 				    char *name);
 static int nvme_ctrl_scan_path(nvme_root_t r, struct nvme_ctrl *c, char *name);
 
-/**
+/*
  * Compare two C strings and handle NULL pointers gracefully.
  * Return true if both pointers are equal (including both set to NULL).
  * Return false if one and only one of the two pointers is NULL.
@@ -90,7 +90,7 @@ static bool streq0(const char *s1, const char *s2)
 	return !strcmp(s1, s2);
 }
 
-/**
+/*
  * Same as streq0() but ignore the case of the characters.
  */
 static bool streqcase0(const char *s1, const char *s2)
