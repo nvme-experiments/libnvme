@@ -2471,8 +2471,8 @@ int nvme_ns_write_uncorrectable(nvme_ns_t n, off_t offset, size_t count)
 	if (nvme_bytes_to_lba(n, offset, count, &slba, &nlb))
 		return -1;
 
-	return nvme_write_uncorrectable(nvme_ns_get_link(n), nvme_ns_get_nsid(n), slba, 0, 0, nlb,
-					0, 0, 0, 0, 0, 0, 0, 0, NULL, 0, NULL, 0, NULL);
+	return nvme_write_uncorrectable(nvme_ns_get_link(n), nvme_ns_get_nsid(n), slba, nlb, 0, 0,
+					NULL);
 }
 
 int nvme_ns_write_zeros(nvme_ns_t n, off_t offset, size_t count)
