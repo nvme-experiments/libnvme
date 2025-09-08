@@ -2460,7 +2460,7 @@ int nvme_ns_verify(nvme_ns_t n, off_t offset, size_t count)
 		return -1;
 
 	return nvme_verify(nvme_ns_get_link(n), nvme_ns_get_nsid(n), slba, 0, 0, nlb, 0, 0, 0, 0, 0,
-			   0, 0, 0, NULL, 0, NULL, 0, NULL);
+			   0, NULL);
 }
 
 int nvme_ns_write_uncorrectable(nvme_ns_t n, off_t offset, size_t count)
