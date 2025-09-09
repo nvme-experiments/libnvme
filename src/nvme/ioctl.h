@@ -5009,12 +5009,13 @@ static inline int nvme_resv_report(nvme_link_t l, __u32 nsid, bool eds,
  * @mo:		Management Operation
  * @data:	Userspace address of the data
  * @data_len:	Length of @data
+ * @result:	The command completion result from CQE dword0
  *
  * Return: 0 on success, the nvme command status if a response was
  * received (see &enum nvme_status_field) or a negative error otherwise.
  */
 static inline int nvme_io_mgmt_recv(nvme_link_t l, __u32 nsid, __u16 mos, __u8 mo, void *data,
-				    __u32 data_len)
+				    __u32 data_len, __u32 *result)
 {
 	__u32 cdw10 = mo | (mos << 16);
 	__u32 cdw11 = (data_len >> 2) - 1;
@@ -5028,23 +5029,24 @@ static inline int nvme_io_mgmt_recv(nvme_link_t l, __u32 nsid, __u16 mos, __u8 m
 		.cdw11		= cdw11,
 	};
 
-	return nvme_submit_io_passthru(l, &cmd, NULL);
+	return nvme_submit_io_passthru(l, &cmd, result);
 }
 
 /**
  * nvme_fdp_reclaim_unit_handle_status() - Get reclaim unit handle status
  * @l:		Link handle
  * @nsid:	Namespace identifier
- * @data_len:	Length of response buffer
  * @data:	Response buffer
+ * @data_len:	Length of response buffer
+ * @result:	The command completion result from CQE dword0
  *
  * Return: 0 on success, the nvme command status if a response was
  * received (see &enum nvme_status_field) or a negative error otherwise.
  */
-static inline int nvme_fdp_reclaim_unit_handle_status(nvme_link_t l, __u32 nsid,
-			__u32 data_len, void *data)
+static inline int nvme_fdp_reclaim_unit_handle_status(nvme_link_t l, __u32 nsid, void *data,
+						      __u32 data_len, __u32 *result)
 {
-	return nvme_io_mgmt_recv(l, nsid, 0, NVME_IO_MGMT_RECV_RUH_STATUS, data, data_len);
+	return nvme_io_mgmt_recv(l, nsid, 0, NVME_IO_MGMT_RECV_RUH_STATUS, data, data_len, result);
 }
 
 /**
