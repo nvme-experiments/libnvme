@@ -5057,12 +5057,13 @@ static inline int nvme_fdp_reclaim_unit_handle_status(nvme_link_t l, __u32 nsid,
  * @mo:		Management Operation
  * @data:	Userspace address of the data
  * @data_len:	Length of @data
+ * @result:	The command completion result from CQE dword0
  *
  * Return: 0 on success, the nvme command status if a response was
  * received (see &enum nvme_status_field) or a negative error otherwise.
  */
 static inline int nvme_io_mgmt_send(nvme_link_t l, __u32 nsid, __u16 mos, __u8 mo, void *data,
-				    __u32 data_len)
+				    __u32 data_len, __u32 *result)
 {
 	__u32 cdw10 = mo | (mos << 16);
 
@@ -5074,24 +5075,25 @@ static inline int nvme_io_mgmt_send(nvme_link_t l, __u32 nsid, __u16 mos, __u8 m
 		.cdw10		= cdw10,
 	};
 
-	return nvme_submit_io_passthru(l, &cmd, NULL);
+	return nvme_submit_io_passthru(l, &cmd, result);
 }
 
 /**
  * nvme_fdp_reclaim_unit_handle_update() - Update a list of reclaim unit handles
  * @l:		Link handle
  * @nsid:	Namespace identifier
- * @npids:	Number of placement identifiers
  * @pids:	List of placement identifiers
+ * @npids:	Number of placement identifiers
+ * @result:	The command completion result from CQE dword0
  *
  * Return: 0 on success, the nvme command status if a response was
  * received (see &enum nvme_status_field) or a negative error otherwise.
  */
-static inline int nvme_fdp_reclaim_unit_handle_update(nvme_link_t l, __u32 nsid,
-			unsigned int npids, __u16 *pids)
+static inline int nvme_fdp_reclaim_unit_handle_update(nvme_link_t l, __u32 nsid, __u16 *pids,
+						      unsigned int npids, __u32 *result)
 {
 	return nvme_io_mgmt_send(l, nsid, (__u16)(npids - 1), NVME_IO_MGMT_SEND_RUH_UPDATE,
-				 (void *)pids, (__u32)(npids * sizeof(__u16)));
+				 (void *)pids, (__u32)(npids * sizeof(__u16)), result);
 }
 
 /**

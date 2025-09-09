@@ -1155,7 +1155,7 @@ static void test_io_mgmt_send(void)
 	arbitrary(&expected_data, sizeof(expected_data));
 	memcpy(&data, &expected_data, sizeof(expected_data));
 	set_mock_io_cmds(&mock_io_cmd, 1);
-	err = nvme_io_mgmt_send(test_link, TEST_NSID, mos, mo, &expected_data, data_len);
+	err = nvme_io_mgmt_send(test_link, TEST_NSID, mos, mo, &expected_data, data_len, NULL);
 	end_mock_cmds();
 	check(err == 0, "returned error %d", err);
 	cmp(&data, &expected_data, sizeof(data), "incorrect data");
@@ -1200,8 +1200,7 @@ static void test_fdp_reclaim_unit_handle_update(void)
 
 	arbitrary(&pids, sizeof(pids));
 	set_mock_io_cmds(&mock_io_cmd, 1);
-	err = nvme_fdp_reclaim_unit_handle_update(test_link, TEST_NSID, npids,
-						  &pids);
+	err = nvme_fdp_reclaim_unit_handle_update(test_link, TEST_NSID, &pids, npids, NULL);
 	end_mock_cmds();
 	check(err == 0, "returned error %d", err);
 }
