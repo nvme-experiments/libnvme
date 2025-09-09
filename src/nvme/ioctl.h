@@ -4798,7 +4798,6 @@ static inline int nvme_dsm(nvme_link_t l, __u32 nsid, __u32 attrs, struct nvme_d
  * @l:		Link handle
  * @nsid:	Namespace identifier
  * @sdlba:	Start destination LBA
- * @ilbrt:	Initial logical block reference tag
  * @lr:		Limited retry
  * @fua:	Force unit access
  * @dspec:	Directive specific value
@@ -4817,10 +4816,10 @@ static inline int nvme_dsm(nvme_link_t l, __u32 nsid, __u32 attrs, struct nvme_d
  * Return: 0 on success, the nvme command status if a response was
  * received (see &enum nvme_status_field) or a negative error otherwise.
  */
-static inline int nvme_copy(nvme_link_t l, __u32 nsid, __u64 sdlba, __u32 ilbrt, int lr, int fua,
-			    __u16 dspec, __u16 lbatm, __u16 lbat, __u8 prinfor, __u8 prinfow,
-			    __u8 dtype, __u8 format, __u64 ilbrt_u64, struct nvme_copy_range *copy,
-			    __u16 nr, __u32 *result)
+static inline int nvme_copy(nvme_link_t l, __u32 nsid, __u64 sdlba, int lr, int fua, __u16 dspec,
+			    __u16 lbatm, __u16 lbat, __u8 prinfor, __u8 prinfow, __u8 dtype,
+			    __u8 format, __u64 ilbrt_u64, struct nvme_copy_range *copy, __u16 nr,
+			    __u32 *result)
 {
 	__u32 cdw3 = NVME_SET(ilbrt_u64 >> 32, COPY_CDW3_LBTU);
 	__u32 cdw10 = NVME_SET(sdlba, COPY_CDW10_SDLBAL);

@@ -981,7 +981,7 @@ static void test_copy(void)
 	int copy_size = sizeof(struct nvme_copy_range) * nr, lr = 0, fua = 0, err;
 	__u8 prinfor = 0, prinfow = 0, dtype = 0, format = 0xf;
 	__u64 sdlba = 0xfffff, ilbrt_u64 = 0;
-	__u32 result = 0, ilbrt = 0;
+	__u32 result = 0;
 
 	_cleanup_free_ struct nvme_copy_range *copy = NULL;
 
@@ -1003,8 +1003,8 @@ static void test_copy(void)
 	};
 
 	set_mock_io_cmds(&mock_io_cmd, 1);
-	err = nvme_copy(test_link, TEST_NSID, sdlba, ilbrt, lr, fua, dspec, lbatm, lbat, prinfor,
-			prinfow, dtype, format, ilbrt_u64, copy, nr, &result);
+	err = nvme_copy(test_link, TEST_NSID, sdlba, lr, fua, dspec, lbatm, lbat, prinfor, prinfow,
+			dtype, format, ilbrt_u64, copy, nr, &result);
 	end_mock_cmds();
 	check(err == 0, "returned error %d", err);
 	check(result == 0, "returned result %u", result);
