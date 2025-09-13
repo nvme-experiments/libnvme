@@ -5402,27 +5402,23 @@ static inline int nvme_zns_report_zones(nvme_link_t l, __u32 nsid, __u64 slba,
  * @nsid:	Namespace ID
  * @zslba:	Zone start logical block address
  * @nlb:	Number of logical blocks
- * @control:    Upper 16 bits of cdw12
- * @cev:	Command Extension Value
- * @dspec:	Directive Specific
- * @lbatm:	Logical block application tag mask
+ * @control:	Upper 16 bits of cdw12
  * @lbat:	Logical block application tag
+ * @lbatm:	Logical block application tag mask
  * @ilbrt_u64:	Initial logical block reference tag - 8 byte
  *              version required for enhanced protection info
- * @metadata:	Userspace address of the metadata
- * @metadata_len: Length of @metadata
  * @data:	Userspace address of the data
  * @data_len:	Length of @data
+ * @metadata:	Userspace address of the metadata
+ * @metadata_len: Length of @metadata
  * @result:	The command completion result from CQE dword0
  *
  * Return: 0 on success, the nvme command status if a response was
  * received (see &enum nvme_status_field) or a negative error otherwise.
  */
-static inline int nvme_zns_append(nvme_link_t l, __u32 nsid, __u64 zslba, __u16 nlb,
-				  __u16 control, __u16 cev, __u16 dspec,
-				  __u16 lbat, __u16 lbatm, __u64 ilbrt_u64,
-				  void *metadata, __u32 metadata_len,
-				  void *data, __u32 data_len, __u64 *result)
+static inline int nvme_zns_append(nvme_link_t l, __u32 nsid, __u64 zslba, __u16 nlb, __u16 control,
+				  __u16 lbat, __u16 lbatm, __u64 ilbrt_u64, void *data,
+				  __u32 data_len, void *metadata, __u32 metadata_len, __u64 *result)
 {
 	__u32 cdw3 = (ilbrt_u64 >> 32) & 0xffffffff;
 	__u32 cdw10 = zslba & 0xffffffff;

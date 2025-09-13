@@ -20,8 +20,6 @@ static void test_zns_append(void)
 	__u64 zslba = TEST_SLBA;
 	__u64 ilbrt_u64 = 0x76;
 	__u16 control = 0xcd;
-	__u16 cev = 0;
-	__u16 dspec = 0;
 	__u16 lbatm = 0x98;
 	__u16 lbat = 0xef;
 	__u16 nlb = 0xab;
@@ -43,9 +41,8 @@ static void test_zns_append(void)
 
 	arbitrary(&expected_data, sizeof(expected_data));
 	set_mock_io_cmds(&mock_io_cmd, 1);
-	err = nvme_zns_append(test_link, TEST_NSID, zslba, nlb, control,
-			      cev, dspec, lbat, lbatm, ilbrt_u64,
-			      NULL, 0, &data, sizeof(data), &result);
+	err = nvme_zns_append(test_link, TEST_NSID, zslba, nlb, control, lbat, lbatm, ilbrt_u64,
+			      &data, sizeof(data), NULL, 0, &result);
 	end_mock_cmds();
 	check(err == 0, "returned error %d", err);
 	check(result == 0, "wrong result");
