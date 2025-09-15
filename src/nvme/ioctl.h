@@ -441,6 +441,16 @@ enum nvme_cmd_dword_fields {
 	NVME_CAPACITY_MGMT_CDW11_CAPL_MASK		= 0xffffffff,
 	NVME_CAPACITY_MGMT_CDW12_CAPU_SHIFT		= 0,
 	NVME_CAPACITY_MGMT_CDW12_CAPU_MASK		= 0xffffffff,
+	NVME_LOCKDOWN_CDW10_SCP_SHIFT			= 0,
+	NVME_LOCKDOWN_CDW10_SCP_MASK			= 0xf,
+	NVME_LOCKDOWN_CDW10_PRHBT_SHIFT			= 4,
+	NVME_LOCKDOWN_CDW10_PRHBT_MASK			= 0x1,
+	NVME_LOCKDOWN_CDW10_IFC_SHIFT			= 5,
+	NVME_LOCKDOWN_CDW10_IFC_MASK			= 0x3,
+	NVME_LOCKDOWN_CDW10_OFI_SHIFT			= 8,
+	NVME_LOCKDOWN_CDW10_OFI_MASK			= 0xff,
+	NVME_LOCKDOWN_CDW14_UIDX_SHIFT			= 0,
+	NVME_LOCKDOWN_CDW14_UIDX_MASK			= 0x3f,
 };
 
 /**
@@ -4288,22 +4298,26 @@ static inline int nvme_capacity_mgmt(nvme_link_t l, __u8 oper, __u16 elid, __u64
  * @prhbt:	Prohibit or allow the command opcode or Set Features command
  * @ifc:	Affected interface
  * @ofi:	Opcode or Feature Identifier
- * @uuidx:	UUID Index if controller supports this id selection method
+ * @uidx:	UUID Index if controller supports this id selection method
  * @result:	The command completion result from CQE dword0
  *
  * Return: 0 on success, the nvme command status if a response was
  * received (see &enum nvme_status_field) or a negative error otherwise.
  */
 static inline int nvme_lockdown(nvme_link_t l, __u8 scp, __u8 prhbt,
-				__u8 ifc, __u8 ofi, __u8 uuidx,
+				__u8 ifc, __u8 ofi, __u8 uidx,
 				__u32 *result)
 {
-	__u32 cdw10 = ofi << 8 | (ifc & 0x3) << 5 | (prhbt & 0x1) << 4 | (scp & 0xF);
+	__u32 cdw10 = NVME_SET(ofi, LOCKDOWN_CDW10_OFI) |
+		NVME_SET(ifc, LOCKDOWN_CDW10_IFC) |
+		NVME_SET(prhbt, LOCKDOWN_CDW10_PRHBT) |
+		NVME_SET(scp, LOCKDOWN_CDW10_SCP);
+	__u32 cdw14 = NVME_SET(uidx, LOCKDOWN_CDW14_UIDX);
 
 	struct nvme_passthru_cmd cmd = {
 		.opcode = nvme_admin_lockdown,
 		.cdw10 = cdw10,
-		.cdw14 = (__u32)(uuidx & 0x3F),
+		.cdw14 = cdw14,
 	};
 
 	return nvme_submit_admin_passthru(l, &cmd, result);
