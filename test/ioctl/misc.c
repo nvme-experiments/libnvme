@@ -625,6 +625,7 @@ static void test_capacity_mgmt(void)
 	__u16 elid = 0x12;
 	__u32 cdw11 = 0x1234;
 	__u32 cdw12 = 0x5678;
+	__u64 cap = (((__u64)cdw12 << 32) | cdw11);
 	__u8 op = 0x3;
 	int err;
 
@@ -638,7 +639,7 @@ static void test_capacity_mgmt(void)
 	};
 
 	set_mock_admin_cmds(&mock_admin_cmd, 1);
-	err = nvme_capacity_mgmt(test_link, op, elid, cdw11, cdw12, &result);
+	err = nvme_capacity_mgmt(test_link, op, elid, cap, &result);
 	end_mock_cmds();
 	check(err == 0, "returned error %d", err);
 	check(result == expected_result, "wrong result");

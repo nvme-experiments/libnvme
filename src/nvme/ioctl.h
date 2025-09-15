@@ -433,6 +433,14 @@ enum nvme_cmd_dword_fields {
 	NVME_COPY_CDW15_LBAT_MASK				= 0xffff,
 	NVME_COPY_CDW15_LBATM_SHIFT				= 16,
 	NVME_COPY_CDW15_LBATM_MASK				= 0xffff,
+	NVME_CAPACITY_MGMT_CDW10_OPER_SHIFT		= 0,
+	NVME_CAPACITY_MGMT_CDW10_OPER_MASK		= 0xf,
+	NVME_CAPACITY_MGMT_CDW10_ELID_SHIFT		= 16,
+	NVME_CAPACITY_MGMT_CDW10_ELID_MASK		= 0xffff,
+	NVME_CAPACITY_MGMT_CDW11_CAPL_SHIFT		= 0,
+	NVME_CAPACITY_MGMT_CDW11_CAPL_MASK		= 0xffffffff,
+	NVME_CAPACITY_MGMT_CDW12_CAPU_SHIFT		= 0,
+	NVME_CAPACITY_MGMT_CDW12_CAPU_MASK		= 0xffffffff,
 };
 
 /**
@@ -4246,21 +4254,22 @@ static inline int nvme_directive_recv_stream_allocate(nvme_link_t l, __u32 nsid,
 /**
  * nvme_capacity_mgmt() - Capacity management command
  * @l:		Link handle
- * @op:		Operation to be performed by the controller
+ * @oper:		Operation to be performed by the controller
  * @elid:	Value specific to the value of the Operation field
- * @cdw11:	Least significant 32 bits of the capacity in bytes of the
- *		Endurance Group or NVM Set to be created
- * @cdw12:	Most significant 32 bits of the capacity in bytes of the
- *		Endurance Group or NVM Set to be created
+ * @cap:	Capacity in bytes of the Endurance Group or NVM Set to
+ *		be created
  * @result:	If successful, the CQE dword0 value
  *
  * Return: 0 on success, the nvme command status if a response was
  * received (see &enum nvme_status_field) or a negative error otherwise.
  */
-static inline int nvme_capacity_mgmt(nvme_link_t l, __u8 op, __u16 elid,
-				     __u32 cdw11, __u32 cdw12, __u32 *result)
+static inline int nvme_capacity_mgmt(nvme_link_t l, __u8 oper, __u16 elid, __u64 cap,
+				     __u32 *result)
 {
-	__u32 cdw10 = op | elid << 16;
+	__u32 cdw10 = NVME_SET(oper, CAPACITY_MGMT_CDW10_OPER) |
+		NVME_SET(elid, CAPACITY_MGMT_CDW10_ELID);
+	__u32 cdw11 = NVME_SET(cap, CAPACITY_MGMT_CDW11_CAPL);
+	__u32 cdw12 = NVME_SET((cap >> 32), CAPACITY_MGMT_CDW12_CAPU);
 
 	struct nvme_passthru_cmd cmd = {
 		.opcode = nvme_admin_capacity_mgmt,
