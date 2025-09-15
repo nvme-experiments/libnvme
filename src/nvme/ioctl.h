@@ -451,6 +451,10 @@ enum nvme_cmd_dword_fields {
 	NVME_LOCKDOWN_CDW10_OFI_MASK			= 0xff,
 	NVME_LOCKDOWN_CDW14_UIDX_SHIFT			= 0,
 	NVME_LOCKDOWN_CDW14_UIDX_MASK			= 0x3f,
+	NVME_IO_MGMT_RECV_CDW10_MO_SHIFT		= 0,
+	NVME_IO_MGMT_RECV_CDW10_MO_MASK			= 0xff,
+	NVME_IO_MGMT_RECV_CDW10_MOS_SHIFT		= 16,
+	NVME_IO_MGMT_RECV_CDW10_MOS_MASK		= 0xffff,
 };
 
 /**
@@ -5228,7 +5232,8 @@ static inline int nvme_io_mgmt_recv(nvme_link_t l, __u32 nsid, __u8 mo,
 				    __u16 mos, void *data, __u32 data_len,
 				    __u32 *result)
 {
-	__u32 cdw10 = mo | (mos << 16);
+	__u32 cdw10 = NVME_SET(mo, IO_MGMT_RECV_CDW10_MO) |
+		NVME_SET(mos, IO_MGMT_RECV_CDW10_MOS);
 	__u32 cdw11 = (data_len >> 2) - 1;
 
 	struct nvme_passthru_cmd cmd = {
