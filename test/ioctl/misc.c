@@ -285,8 +285,7 @@ static void test_security_send(void)
 	__u32 tl = 0xffff;
 	__u32 result = 0;
 	__u8 nssf = 0x1; 
-	__u8 spsp0 = 0x1;
-	__u8 spsp1 = 0x1; 
+	__u16 spsp = 0x0101;
 	__u8 secp = 0xE9;
 
 	struct mock_cmd mock_admin_cmd = {
@@ -303,7 +302,7 @@ static void test_security_send(void)
 	arbitrary(&expected_data, sizeof(expected_data));
 	memcpy(&data, &expected_data, sizeof(expected_data));
 	set_mock_admin_cmds(&mock_admin_cmd, 1);
-	err = nvme_security_send(test_link, nsid, nssf, spsp0, spsp1, secp, tl,
+	err = nvme_security_send(test_link, nsid, nssf, spsp, secp, tl,
 				 &expected_data, data_len, &result);
 	end_mock_cmds();
 	check(err == 0, "returned error %d", err);
