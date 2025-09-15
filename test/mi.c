@@ -1722,29 +1722,25 @@ static void test_admin_format_nvm(struct nvme_mi_ep *ep)
 	/* ensure we have the cdw0 bit field encoding correct, by testing twice
 	 * with inverted bit values */
 	args.nsid = 0x04030201;
-	args.lbafu = 0x3;
 	args.ses = 0x0;
 	args.pil = 0x1;
 	args.pi = 0x0;
 	args.mset = 0x1;
-	args.lbafl = 0x0;
+	args.lbaf = 0x30;
 
-	rc = nvme_format_nvm(link, args.nsid, args.lbafl, args.mset,
-			     args.pi, args.pil, args.ses,
-			     args.lbafu, NULL);
+	rc = nvme_format_nvm(link, args.nsid, args.lbaf, args.mset,
+			     args.pi, args.pil, args.ses, NULL);
 	assert(!rc);
 
 	args.nsid = ~args.nsid;
-	args.lbafu = 0;
 	args.ses = 0x7;
 	args.pil = 0x0;
 	args.pi = 0x7;
 	args.mset = 0x0;
-	args.lbafl = 0xf;
+	args.lbaf = 0x0f;
 
-	rc = nvme_format_nvm(link, args.nsid, args.lbafl, args.mset,
-			     args.pi, args.pil, args.ses,
-			     args.lbafu, NULL);
+	rc = nvme_format_nvm(link, args.nsid, args.lbaf, args.mset,
+			     args.pi, args.pil, args.ses, NULL);
 	assert(!rc);
 }
 

@@ -3625,12 +3625,11 @@ static inline int nvme_get_features_iocs_profile(nvme_link_t l,
  * nvme_format_nvm() - Format nvme namespace(s)
  * @l:		Link handle
  * @nsid:	Namespace ID to format
- * @lbafl:	Logical block address format least significant 4 bits
+ * @lbaf:	Logical block address format
  * @mset:	Metadata settings (extended or separated), true if extended
  * @pi:		Protection information type
  * @pil:	Protection information location (beginning or end), true if end
  * @ses:	Secure erase settings
- * @lbafu:	Logical block address format most significant 2 bits
  * @result:	The command completion result from CQE dword0
  *
  * The Format NVM command low level formats the NVM media. This command is used
@@ -3641,19 +3640,19 @@ static inline int nvme_get_features_iocs_profile(nvme_link_t l,
  * Return: 0 on success, the nvme command status if a response was
  * received (see &enum nvme_status_field) or a negative error otherwise.
  */
-static inline int nvme_format_nvm(nvme_link_t l, __u32 nsid, __u8 lbafl,
+static inline int nvme_format_nvm(nvme_link_t l, __u32 nsid, __u8 lbaf,
 				  enum nvme_cmd_format_mset mset,
 				  enum nvme_cmd_format_pi pi,
 				  enum nvme_cmd_format_pil pil,
 				  enum nvme_cmd_format_ses ses,
-				  __u8 lbafu, __u32 *result)
+				  __u32 *result)
 {
-	__u32 cdw10 = NVME_SET(lbafl, FORMAT_CDW10_LBAFL) |
+	__u32 cdw10 = NVME_SET(lbaf, FORMAT_CDW10_LBAFL) |
 		      NVME_SET(mset, FORMAT_CDW10_MSET) |
 		      NVME_SET(pi, FORMAT_CDW10_PI) |
 		      NVME_SET(pil, FORMAT_CDW10_PIL) |
 		      NVME_SET(ses, FORMAT_CDW10_SES) |
-		      NVME_SET(lbafu, FORMAT_CDW10_LBAFU);
+		      NVME_SET((lbaf >> 4), FORMAT_CDW10_LBAFU);
 
 	struct nvme_passthru_cmd cmd = {
 		.opcode		= nvme_admin_format_nvm,

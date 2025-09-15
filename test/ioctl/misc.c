@@ -22,23 +22,22 @@ static void test_format_nvm(void)
 	enum nvme_cmd_format_pil pil = NVME_FORMAT_PIL_FIRST;
 	enum nvme_cmd_format_ses ses = NVME_FORMAT_SES_USER_DATA_ERASE;
 	__u32 nsid = TEST_NSID;
-	__u8 lbafl = 0xF;
-	__u8 lbafu = 0x1;
+	__u8 lbaf = 0x1F;
 	__u32 result = 0;
 
 	struct mock_cmd mock_admin_cmd = {
 		.opcode = nvme_admin_format_nvm,
 		.nsid = nsid,
-		.cdw10 = lbafl | (mset << 4) | (pi << 5) |
-			 (pil << 8) | (ses << 9) | (lbafu << 12),
+		.cdw10 = lbaf | (mset << 4) | (pi << 5) |
+			 (pil << 8) | (ses << 9) | ((lbaf >> 4) << 12),
 		.result = 0,
 	};
 
 	int err;
 
 	set_mock_admin_cmds(&mock_admin_cmd, 1);
-	err = nvme_format_nvm(test_link, nsid, lbafl, mset, pi, pil,
-			      ses, lbafu, &result);
+	err = nvme_format_nvm(test_link, nsid, lbaf, mset, pi, pil,
+			      ses, &result);
 	end_mock_cmds();
 	check(err == 0, "returned error %d", err);
 	check(result == 0, "returned result %u", result);
