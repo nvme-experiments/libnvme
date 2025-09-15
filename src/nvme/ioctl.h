@@ -455,6 +455,34 @@ enum nvme_cmd_dword_fields {
 	NVME_IO_MGMT_RECV_CDW10_MO_MASK			= 0xff,
 	NVME_IO_MGMT_RECV_CDW10_MOS_SHIFT		= 16,
 	NVME_IO_MGMT_RECV_CDW10_MOS_MASK		= 0xffff,
+	NVME_RESV_ACQUIRE_CDW10_RACQA_SHIFT		= 0,
+	NVME_RESV_ACQUIRE_CDW10_RACQA_MASK		= 0x7,
+	NVME_RESV_ACQUIRE_CDW10_IEKEY_SHIFT		= 3,
+	NVME_RESV_ACQUIRE_CDW10_IEKEY_MASK		= 0x1,
+	NVME_RESV_ACQUIRE_CDW10_DISNSRS_SHIFT	= 4,
+	NVME_RESV_ACQUIRE_CDW10_DISNSRS_MASK	= 0x1,
+	NVME_RESV_ACQUIRE_CDW10_RTYPE_SHIFT		= 8,
+	NVME_RESV_ACQUIRE_CDW10_RTYPE_MASK		= 0xff,
+	NVME_RESV_REGISTER_CDW10_RREGA_SHIFT	= 0,
+	NVME_RESV_REGISTER_CDW10_RREGA_MASK		= 0x7,
+	NVME_RESV_REGISTER_CDW10_IEKEY_SHIFT	= 3,
+	NVME_RESV_REGISTER_CDW10_IEKEY_MASK		= 0x1,
+	NVME_RESV_REGISTER_CDW10_DISNSRS_SHIFT	= 4,
+	NVME_RESV_REGISTER_CDW10_DISNSRS_MASK	= 0x1,
+	NVME_RESV_REGISTER_CDW10_CPTPL_SHIFT	= 30,
+	NVME_RESV_REGISTER_CDW10_CPTPL_MASK		= 0x3,
+	NVME_RESV_RELEASE_CDW10_RRELA_SHIFT		= 0,
+	NVME_RESV_RELEASE_CDW10_RRELA_MASK		= 0x7,
+	NVME_RESV_RELEASE_CDW10_IEKEY_SHIFT		= 3,
+	NVME_RESV_RELEASE_CDW10_IEKEY_MASK		= 0x1,
+	NVME_RESV_RELEASE_CDW10_DISNSRS_SHIFT	= 4,
+	NVME_RESV_RELEASE_CDW10_DISNSRS_MASK	= 0x1,
+	NVME_RESV_RELEASE_CDW10_RTYPE_SHIFT		= 8,
+	NVME_RESV_RELEASE_CDW10_RTYPE_MASK		= 0xff,
+	NVME_RESV_REPORT_CDW10_EDS_SHIFT		= 0,
+	NVME_RESV_REPORT_CDW10_EDS_MASK			= 0x1,
+	NVME_RESV_REPORT_CDW10_DISNSRS_SHIFT	= 1,
+	NVME_RESV_REPORT_CDW10_DISNSRS_MASK		= 0x1,
 };
 
 /**
@@ -5077,8 +5105,6 @@ static inline int nvme_copy(nvme_link_t l, __u32 nsid, __u64 sdlba, __u16 nr, __
  * @rtype:	The type of reservation to be create, see &enum nvme_resv_rtype
  * @crkey:	The current reservation key associated with the host
  * @prkey:	Preempt Reserveration Key
- * @nrkey:	The reservation key to be unregistered from the namespace if
- *		the action is preempt
  * @result:	The command completion result from CQE dword0
  *
  * The Reservation Acquire command acquires a reservation on a namespace,
@@ -5090,15 +5116,16 @@ static inline int nvme_copy(nvme_link_t l, __u32 nsid, __u64 sdlba, __u16 nr, __
  */
 static inline int nvme_resv_acquire(nvme_link_t l, __u32 nsid, enum nvme_resv_racqa racqa,
 				    bool iekey, bool disnsrs, enum nvme_resv_rtype rtype,
-				    __u16 prkey, __u64 crkey, __u64 nrkey,
-				    __u32 *result)
-
+				    __u64 crkey, __u64 prkey, __u32 *result)
 {
 	__le64 payload[2] = {
 		htole64(crkey),
-		htole64(nrkey)
+		htole64(prkey)
 	};
-	__u32 cdw10 = (racqa & 0x7) | (iekey ? 1 << 3 : 0) | (rtype << 8);
+	__u32 cdw10 = NVME_SET(racqa, RESV_ACQUIRE_CDW10_RACQA) |
+		NVME_SET(iekey, RESV_ACQUIRE_CDW10_IEKEY) |
+		NVME_SET(disnsrs, RESV_ACQUIRE_CDW10_DISNSRS) |
+		NVME_SET(rtype, RESV_ACQUIRE_CDW10_RTYPE);
 
 	struct nvme_passthru_cmd cmd = {
 		.opcode		= nvme_cmd_resv_acquire,
@@ -5138,7 +5165,10 @@ static inline int nvme_resv_register(nvme_link_t l, __u32 nsid, enum nvme_resv_r
 		htole64(crkey),
 		htole64(nrkey)
 	};
-	__u32 cdw10 = (rrega & 0x7) | (iekey ? 1 << 3 : 0) | (cptpl << 30);
+	__u32 cdw10 = NVME_SET(rrega, RESV_REGISTER_CDW10_RREGA) |
+		NVME_SET(iekey, RESV_REGISTER_CDW10_IEKEY) |
+		NVME_SET(disnsrs, RESV_REGISTER_CDW10_DISNSRS) |
+		NVME_SET(cptpl, RESV_REGISTER_CDW10_CPTPL);
 
 	struct nvme_passthru_cmd cmd = {
 		.opcode		= nvme_cmd_resv_register,
@@ -5156,21 +5186,24 @@ static inline int nvme_resv_register(nvme_link_t l, __u32 nsid, enum nvme_resv_r
  * @l:		Link handle
  * @nsid:	Namespace identifier
  * @rrela:	Reservation release action, see &enum nvme_resv_rrela
- * @crkey:	The current reservation key to release
  * @iekey:	Set to ignore the existing key
  * @disnsrs:	Disperse Namespace Reservation Support
  * @rtype:	The type of reservation to be create, see &enum nvme_resv_rtype
+ * @crkey:	The current reservation key to release
  * @result:	The command completion result from CQE dword0
  *
  * Return: 0 on success, the nvme command status if a response was
  * received (see &enum nvme_status_field) or a negative error otherwise.
  */
 static inline int nvme_resv_release(nvme_link_t l, __u32 nsid, enum nvme_resv_rrela rrela,
-				    __u64 crkey, bool iekey, bool disnsrs,
-				    enum nvme_resv_rtype rtype, __u32 *result)
+				    bool iekey, bool disnsrs, enum nvme_resv_rtype rtype,
+				    __u64 crkey, __u32 *result)
 {
 	__le64 payload[1] = { htole64(crkey) };
-	__u32 cdw10 = (rrela & 0x7) | (iekey ? 1 << 3 : 0) | (rtype << 8);
+	__u32 cdw10 = NVME_SET(rrela, RESV_RELEASE_CDW10_RRELA) |
+		NVME_SET(iekey, RESV_RELEASE_CDW10_IEKEY) |
+		NVME_SET(disnsrs, RESV_RELEASE_CDW10_DISNSRS) |
+		NVME_SET(rtype, RESV_RELEASE_CDW10_RTYPE);
 
 	struct nvme_passthru_cmd cmd = {
 		.opcode		= nvme_cmd_resv_release,
@@ -5188,6 +5221,7 @@ static inline int nvme_resv_release(nvme_link_t l, __u32 nsid, enum nvme_resv_rr
  * @l:		Link handle
  * @nsid:	Namespace identifier
  * @eds:	Request extended Data Structure
+ * @disnsrs:	Disperse Namespace Reservation Support
  * @report:	The user space destination address to store the reservation
  *		report
  * @len:	Number of bytes to request transferred with this command
@@ -5200,16 +5234,19 @@ static inline int nvme_resv_release(nvme_link_t l, __u32 nsid, enum nvme_resv_rr
  * Return: 0 on success, the nvme command status if a response was
  * received (see &enum nvme_status_field) or a negative error otherwise.
  */
-static inline int nvme_resv_report(nvme_link_t l, __u32 nsid, bool eds,
+static inline int nvme_resv_report(nvme_link_t l, __u32 nsid, bool eds, bool disnsrs,
 				   struct nvme_resv_status *report, __u32 len, __u32 *result)
 {
+	__u32 cdw10 = NVME_SET(eds, RESV_REPORT_CDW10_EDS) |
+		NVME_SET(disnsrs, RESV_REPORT_CDW10_DISNSRS);
+
 	struct nvme_passthru_cmd cmd = {
 		.opcode		= nvme_cmd_resv_report,
 		.nsid		= nsid,
 		.addr		= (__u64)(uintptr_t)report,
 		.data_len	= len,
 		.cdw10		= (len >> 2) - 1,
-		.cdw11		= (__u32)(eds ? 1 : 0),
+		.cdw11		= cdw10,
 	};
 
 	return nvme_submit_io_passthru(l, &cmd, result);

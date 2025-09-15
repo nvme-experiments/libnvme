@@ -1058,7 +1058,7 @@ static void test_resv_acquire(void)
 {
 	enum nvme_resv_rtype rtype = NVME_RESERVATION_RTYPE_EAAR;
 	enum nvme_resv_racqa racqa = NVME_RESERVATION_RACQA_PREEMPT;
-	__le64 payload[2] = { 0 };
+	__le64 payload[2] = { htole64(1), htole64(2) };
 	bool iekey = true;
 	__u32 result = 0;
 	int err;
@@ -1073,7 +1073,7 @@ static void test_resv_acquire(void)
 
 	set_mock_io_cmds(&mock_io_cmd, 1);
 	err = nvme_resv_acquire(test_link, TEST_NSID, racqa, iekey,
-				false, rtype, 0, 0, 0, &result);
+				false, rtype, 1, 2, &result);
 	end_mock_cmds();
 	check(err == 0, "returned error %d", err);
 	check(result == 0, "returned result %u", result);
@@ -1123,8 +1123,8 @@ static void test_resv_release(void)
 
 
 	set_mock_io_cmds(&mock_io_cmd, 1);
-	err = nvme_resv_release(test_link, TEST_NSID, rrela, 0xffffffffffffffff,
-				iekey, false, rtype,  &result);
+	err = nvme_resv_release(test_link, TEST_NSID, rrela,
+				iekey, false, rtype, 0xffffffffffffffff, &result);
 	end_mock_cmds();
 	check(err == 0, "returned error %d", err);
 	check(result == 0, "returned result %u", result);
@@ -1136,20 +1136,21 @@ static void test_resv_report(void)
 	__u32 len = sizeof(status);
 	__u32 result = 0;
 	bool eds = false;
+	bool disnsrs = true;
 	int err;
 
 	struct mock_cmd mock_io_cmd = {
 		.opcode = nvme_cmd_resv_report,
 		.nsid = TEST_NSID,
 		.cdw10 = (len >> 2) - 1,
-		.cdw11 = eds ? 1 : 0,
+		.cdw11 = (!!eds) | (!!disnsrs << 1),
 		.data_len = len,
 		.out_data = &expected_status,
 	};
 
 	arbitrary(&expected_status, sizeof(expected_status));
 	set_mock_io_cmds(&mock_io_cmd, 1);
-	err = nvme_resv_report(test_link, TEST_NSID, eds, &status, len, &result);
+	err = nvme_resv_report(test_link, TEST_NSID, eds, disnsrs, &status, len, &result);
 	end_mock_cmds();
 	check(err == 0, "returned error %d", err);
 	check(result == 0, "returned result %u", result);
