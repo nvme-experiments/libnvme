@@ -3009,17 +3009,18 @@ static inline int nvme_set_features_write_protect(nvme_link_t l, __u32 nsid,
  * @l:		Link handle
  * @sv:		Save value across power states
  * @iocsci:	I/O Command Set Combination Index
+ * @result:	The command completions result from CQE dword0
  *
  * Return: 0 on success, the nvme command status if a response was
  * received (see &enum nvme_status_field) or a negative error otherwise.
  */
 static inline int nvme_set_features_iocs_profile(nvme_link_t l, bool sv,
-						 __u16 iocsci)
+						 __u16 iocsci, __u32 *result)
 {
 	__u32 cdw11 = NVME_SET(iocsci, FEAT_IOCSP_IOCSCI);
 
 	return __nvme_set_features(l, NVME_FEAT_FID_IOCS_PROFILE,
-				   sv, cdw11, NULL);
+				   sv, cdw11, result);
 }
 
 /**

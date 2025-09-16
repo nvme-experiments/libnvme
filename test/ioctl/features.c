@@ -1131,13 +1131,17 @@ static void test_set_iocs_profile(void)
 		.opcode = nvme_admin_set_features,
 		.cdw10 = NVME_FEAT_FID_IOCS_PROFILE,
 		.cdw11 = IOCSI,
+		.result = TEST_RESULT,
 	};
+	uint32_t result = 0;
 	int err;
 
 	set_mock_admin_cmds(&mock_admin_cmd, 1);
-	err = nvme_set_features_iocs_profile(test_link, false, IOCSI);
+	err = nvme_set_features_iocs_profile(test_link, false, IOCSI, &result);
 	end_mock_cmds();
 	check(err == 0, "set features returned error %d", err);
+	check(result == TEST_RESULT,
+	      "got result %" PRIu32 ", expected %" PRIu32, result, TEST_RESULT);
 }
 
 static void test_get_iocs_profile(void)
