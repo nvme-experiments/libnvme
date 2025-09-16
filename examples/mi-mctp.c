@@ -217,9 +217,8 @@ int do_identify(nvme_mi_ep_t ep, int argc, char **argv)
 					   offsetof(struct nvme_id_ctrl, rab),
 					   NULL);
 	} else {
-		rc = nvme_identify(link, 0, NVME_IDENTIFY_CNS_CTRL,
-				   NVME_CSI_NVM, 0, 0, NVME_NSID_NONE,
-				   &id, NULL);
+		rc = nvme_identify(link, NVME_NSID_NONE, 0, NVME_IDENTIFY_CNS_CTRL,
+				   NVME_CSI_NVM, 0, 0, &id, NULL);
 	}
 
 	if (rc) {
