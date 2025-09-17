@@ -4996,7 +4996,7 @@ static inline int nvme_dsm(nvme_link_t l, __u32 nsid, __u16 nr_ranges,
 static inline int nvme_copy(nvme_link_t l, __u32 nsid, __u64 sdlba, __u16 nr, __u8 desfmt,
 			    __u8 prinfor, __u8 prinfow, __u8 cetype, __u8 dtype, bool stcw,
 			    bool stcr, bool fua, bool lr, __u16 cev, __u16 dspec,
-			    bool elbas,__u8 sts, __u8 pif, __u64 storage_tag, __u32 reftag,
+			    bool elbas, __u8 sts, __u8 pif, __u64 storage_tag, __u64 reftag,
 			    __u16 lbat, __u16 lbatm,
 			    void *cpydsc, __u32 *result)
 {
