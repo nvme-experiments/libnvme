@@ -5047,8 +5047,6 @@ static inline int nvme_copy(nvme_link_t l, __u32 nsid, __u64 sdlba, __u16 nr, __
  * @rtype:	The type of reservation to be create, see &enum nvme_resv_rtype
  * @crkey:	The current reservation key associated with the host
  * @prkey:	Preempt Reserveration Key
- * @nrkey:	The reservation key to be unregistered from the namespace if
- *		the action is preempt
  * @result:	The command completion result from CQE dword0
  *
  * The Reservation Acquire command acquires a reservation on a namespace,
@@ -5060,13 +5058,11 @@ static inline int nvme_copy(nvme_link_t l, __u32 nsid, __u64 sdlba, __u16 nr, __
  */
 static inline int nvme_resv_acquire(nvme_link_t l, __u32 nsid, enum nvme_resv_racqa racqa,
 				    bool iekey, bool disnsrs, enum nvme_resv_rtype rtype,
-				    __u16 prkey, __u64 crkey, __u64 nrkey,
-				    __u32 *result)
-
+				    __u16 prkey, __u64 crkey, __u32 *result)
 {
 	__le64 payload[2] = {
 		htole64(crkey),
-		htole64(nrkey)
+		htole64(prkey)
 	};
 	__u32 cdw10 = (racqa & 0x7) | (iekey ? 1 << 3 : 0) | (rtype << 8);
 

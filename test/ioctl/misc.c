@@ -1072,8 +1072,7 @@ static void test_resv_acquire(void)
 	};
 
 	set_mock_io_cmds(&mock_io_cmd, 1);
-	err = nvme_resv_acquire(test_link, TEST_NSID, racqa, iekey,
-				false, rtype, 0, 0, 0, &result);
+	err = nvme_resv_acquire(test_link, TEST_NSID, racqa, iekey, false, rtype, 0, 0, &result);
 	end_mock_cmds();
 	check(err == 0, "returned error %d", err);
 	check(result == 0, "returned result %u", result);
