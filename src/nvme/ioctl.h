@@ -342,63 +342,65 @@ enum nvme_cmd_dword_fields {
 								   NVME_VAL(DSM_CDW11_IDW) |
 								   NVME_VAL(DSM_CDW11_AD)) >>
 									NVME_DSM_CDW11_IDR_SHIFT,
-	NVME_NVM_CDW2_ELBTU_SHIFT				= 0,
-	NVME_NVM_CDW2_ELBTU_MASK				= 0xffff,
-	NVME_NVM_CDW3_ELBTU_SHIFT				= 0,
-	NVME_NVM_CDW3_ELBTU_MASK				= 0xffffffff,
-	NVME_NVM_CDW10_SLBAL_SHIFT				= 0,
-	NVME_NVM_CDW10_SLBAL_MASK				= 0xffffffff,
-	NVME_NVM_CDW11_SLBAU_SHIFT				= 0,
-	NVME_NVM_CDW11_SLBAU_MASK				= 0xffffffff,
-	NVME_NVM_CDW12_NLB_SHIFT				= 0,
-	NVME_NVM_CDW12_NLB_MASK					= 0xffff,
-	NVME_NVM_CDW12_CETYPE_SHIFT				= 16,
-	NVME_NVM_CDW12_CETYPE_MASK				= 0xf,
-	NVME_NVM_CDW12_DTYPE_SHIFT				= 20,
-	NVME_NVM_CDW12_DTYPE_MASK				= 0xf,
-	NVME_NVM_CDW12_STC_SHIFT				= 24,
-	NVME_NVM_CDW12_STC_MASK					= 0x1,
-	NVME_NVM_CDW12_STCR_SHIFT				= 25,
-	NVME_NVM_CDW12_STCR_MASK				= 0x1,
-	NVME_NVM_CDW12_PRINFO_SHIFT				= 26,
-	NVME_NVM_CDW12_PRINFO_MASK				= 0xf,
-	NVME_NVM_CDW12_FUA_SHIFT				= 30,
-	NVME_NVM_CDW12_FUA_MASK					= 0x1,
-	NVME_NVM_CDW12_LR_SHIFT					= 31,
-	NVME_NVM_CDW12_LR_MASK					= 0x1,
-	NVME_NVM_CDW12_CONTROL_SHIFT				= NVME_NVM_CDW12_CETYPE_SHIFT,
-	NVME_NVM_CDW12_CONTROL_MASK				= (NVME_VAL(NVM_CDW12_CETYPE) |
-								   NVME_VAL(NVM_CDW12_DTYPE) |
-								   NVME_VAL(NVM_CDW12_STC) |
-								   NVME_VAL(NVM_CDW12_STCR) |
-								   NVME_VAL(NVM_CDW12_PRINFO) |
-								   NVME_VAL(NVM_CDW12_FUA) |
-								   NVME_VAL(NVM_CDW12_LR)) >>
-									NVME_NVM_CDW12_CONTROL_SHIFT,
-	NVME_NVM_CDW13_DSM_AF_SHIFT				= 0,
-	NVME_NVM_CDW13_DSM_AF_MASK				= 0xf,
-	NVME_NVM_CDW13_DSM_AL_SHIFT				= 4,
-	NVME_NVM_CDW13_DSM_AL_MASK				= 0x3,
-	NVME_NVM_CDW13_DSM_SEQREQ_SHIFT				= 6,
-	NVME_NVM_CDW13_DSM_SEQREQ_MASK				= 0x1,
-	NVME_NVM_CDW13_DSM_INCPRS_SHIFT				= 7,
-	NVME_NVM_CDW13_DSM_INCPRS_MASK				= 0x1,
-	NVME_NVM_CDW13_DSM_SHIFT				= NVME_NVM_CDW13_DSM_AF_SHIFT,
-	NVME_NVM_CDW13_DSM_MASK					= (NVME_VAL(NVM_CDW13_DSM_AF) |
-								   NVME_VAL(NVM_CDW13_DSM_AL) |
-								   NVME_VAL(NVM_CDW13_DSM_SEQREQ) |
-								   NVME_VAL(NVM_CDW13_DSM_INCPRS)) >>
-									NVME_NVM_CDW13_DSM_SHIFT,
-	NVME_NVM_CDW13_CEV_SHIFT				= 0,
-	NVME_NVM_CDW13_CEV_MASK					= 0xffff,
-	NVME_NVM_CDW13_DSPEC_SHIFT				= 16,
-	NVME_NVM_CDW13_DSPEC_MASK				= 0xffff,
-	NVME_NVM_CDW14_ELBTL_SHIFT				= 0,
-	NVME_NVM_CDW14_ELBTL_MASK				= 0xffffffff,
-	NVME_NVM_CDW15_ELBAT_SHIFT				= 0,
-	NVME_NVM_CDW15_ELBAT_MASK				= 0xffff,
-	NVME_NVM_CDW15_ELBATM_SHIFT				= 16,
-	NVME_NVM_CDW15_ELBATM_MASK				= 0xffff,
+	NVME_IOCS_COMMON_CDW2_ELBTU_SHIFT		= 0,
+	NVME_IOCS_COMMON_CDW2_ELBTU_MASK		= 0xffff,
+	NVME_IOCS_COMMON_CDW3_ELBTU_SHIFT		= 0,
+	NVME_IOCS_COMMON_CDW3_ELBTU_MASK		= 0xffffffff,
+	NVME_IOCS_COMMON_CDW10_SLBAL_SHIFT		= 0,
+	NVME_IOCS_COMMON_CDW10_SLBAL_MASK		= 0xffffffff,
+	NVME_IOCS_COMMON_CDW11_SLBAU_SHIFT		= 0,
+	NVME_IOCS_COMMON_CDW11_SLBAU_MASK		= 0xffffffff,
+	NVME_IOCS_COMMON_CDW12_NLB_SHIFT		= 0,
+	NVME_IOCS_COMMON_CDW12_NLB_MASK			= 0xffff,
+	NVME_IOCS_COMMON_CDW12_CETYPE_SHIFT		= 16,
+	NVME_IOCS_COMMON_CDW12_CETYPE_MASK		= 0xf,
+	NVME_IOCS_COMMON_CDW12_DTYPE_SHIFT		= 20,
+	NVME_IOCS_COMMON_CDW12_DTYPE_MASK		= 0xf,
+	NVME_IOCS_COMMON_CDW12_STC_SHIFT		= 24,
+	NVME_IOCS_COMMON_CDW12_STC_MASK			= 0x1,
+	NVME_IOCS_COMMON_CDW12_DEAC_SHIFT		= 25,
+	NVME_IOCS_COMMON_CDW12_DEAC_MASK		= 0x1,
+	NVME_IOCS_COMMON_CDW12_PIREMAP_SHIFT	= 25,
+	NVME_IOCS_COMMON_CDW12_PIREMAP_MASK		= 0x1,
+	NVME_IOCS_COMMON_CDW12_PRINFO_SHIFT		= 26,
+	NVME_IOCS_COMMON_CDW12_PRINFO_MASK		= 0xf,
+	NVME_IOCS_COMMON_CDW12_FUA_SHIFT		= 30,
+	NVME_IOCS_COMMON_CDW12_FUA_MASK			= 0x1,
+	NVME_IOCS_COMMON_CDW12_LR_SHIFT			= 31,
+	NVME_IOCS_COMMON_CDW12_LR_MASK			= 0x1,
+	NVME_IOCS_COMMON_CDW12_CONTROL_SHIFT	= NVME_IOCS_COMMON_CDW12_CETYPE_SHIFT,
+	NVME_IOCS_COMMON_CDW12_CONTROL_MASK		= (NVME_VAL(IOCS_COMMON_CDW12_CETYPE) |
+							NVME_VAL(IOCS_COMMON_CDW12_DTYPE) |
+							NVME_VAL(IOCS_COMMON_CDW12_STC) |
+							NVME_VAL(IOCS_COMMON_CDW12_DEAC) |
+							NVME_VAL(IOCS_COMMON_CDW12_PRINFO) |
+							NVME_VAL(IOCS_COMMON_CDW12_FUA) |
+							NVME_VAL(IOCS_COMMON_CDW12_LR)) >>
+							 NVME_IOCS_COMMON_CDW12_CONTROL_SHIFT,
+	NVME_IOCS_COMMON_CDW13_DSM_AF_SHIFT		= 0,
+	NVME_IOCS_COMMON_CDW13_DSM_AF_MASK		= 0xf,
+	NVME_IOCS_COMMON_CDW13_DSM_AL_SHIFT		= 4,
+	NVME_IOCS_COMMON_CDW13_DSM_AL_MASK		= 0x3,
+	NVME_IOCS_COMMON_CDW13_DSM_SEQREQ_SHIFT	= 6,
+	NVME_IOCS_COMMON_CDW13_DSM_SEQREQ_MASK	= 0x1,
+	NVME_IOCS_COMMON_CDW13_DSM_INCPRS_SHIFT	= 7,
+	NVME_IOCS_COMMON_CDW13_DSM_INCPRS_MASK	= 0x1,
+	NVME_IOCS_COMMON_CDW13_DSM_SHIFT		= NVME_IOCS_COMMON_CDW13_DSM_AF_SHIFT,
+	NVME_IOCS_COMMON_CDW13_DSM_MASK			= (NVME_VAL(IOCS_COMMON_CDW13_DSM_AF) |
+							NVME_VAL(IOCS_COMMON_CDW13_DSM_AL) |
+							NVME_VAL(IOCS_COMMON_CDW13_DSM_SEQREQ) |
+							NVME_VAL(IOCS_COMMON_CDW13_DSM_INCPRS)) >>
+							 NVME_IOCS_COMMON_CDW13_DSM_SHIFT,
+	NVME_IOCS_COMMON_CDW13_CEV_SHIFT		= 0,
+	NVME_IOCS_COMMON_CDW13_CEV_MASK			= 0xffff,
+	NVME_IOCS_COMMON_CDW13_DSPEC_SHIFT		= 16,
+	NVME_IOCS_COMMON_CDW13_DSPEC_MASK		= 0xffff,
+	NVME_IOCS_COMMON_CDW14_ELBTL_SHIFT		= 0,
+	NVME_IOCS_COMMON_CDW14_ELBTL_MASK		= 0xffffffff,
+	NVME_IOCS_COMMON_CDW15_ELBAT_SHIFT		= 0,
+	NVME_IOCS_COMMON_CDW15_ELBAT_MASK		= 0xffff,
+	NVME_IOCS_COMMON_CDW15_ELBATM_SHIFT		= 16,
+	NVME_IOCS_COMMON_CDW15_ELBATM_MASK		= 0xffff,
 	NVME_COPY_CDW3_LBTU_SHIFT				= 0,
 	NVME_COPY_CDW3_LBTU_MASK				= 0xffffffff,
 	NVME_COPY_CDW10_SDLBAL_SHIFT				= 0,
@@ -4503,27 +4505,30 @@ static inline int nvme_set_var_size_tags(__u8 pif, __u8 sts, __u64 reftag, __u64
 
 	switch (pif) {
 	case NVME_NVM_PIF_16B_GUARD:
-		cdw14 = NVME_SET(reftag, NVM_CDW14_ELBTL);
-		cdw14 |= NVME_SET(storage_tag << (32 - sts), NVM_CDW14_ELBTL);
+		cdw14 = NVME_SET(reftag, IOCS_COMMON_CDW14_ELBTL);
+		cdw14 |= NVME_SET(storage_tag << (32 - sts), IOCS_COMMON_CDW14_ELBTL);
 		break;
 	case NVME_NVM_PIF_32B_GUARD:
-		cdw14 = NVME_SET(reftag, NVM_CDW14_ELBTL);
-		cdw3 = NVME_SET(reftag >> 32, NVM_CDW3_ELBTU);
-		cdw14 |= NVME_SET((storage_tag << (80 - sts)) & 0xffff0000, NVM_CDW14_ELBTL);
+		cdw14 = NVME_SET(reftag, IOCS_COMMON_CDW14_ELBTL);
+		cdw3 = NVME_SET(reftag >> 32, IOCS_COMMON_CDW3_ELBTU);
+		cdw14 |= NVME_SET((storage_tag << (80 - sts)) & 0xffff0000,
+					IOCS_COMMON_CDW14_ELBTL);
 		if (sts >= 48)
-			cdw3 |= NVME_SET(storage_tag >> (sts - 48), NVM_CDW3_ELBTU);
+			cdw3 |= NVME_SET(storage_tag >> (sts - 48), IOCS_COMMON_CDW3_ELBTU);
 		else
-			cdw3 |= NVME_SET(storage_tag << (48 - sts), NVM_CDW3_ELBTU);
-		cdw2 = NVME_SET(storage_tag >> (sts - 16), NVM_CDW2_ELBTU);
+			cdw3 |= NVME_SET(storage_tag << (48 - sts), IOCS_COMMON_CDW3_ELBTU);
+		cdw2 = NVME_SET(storage_tag >> (sts - 16), IOCS_COMMON_CDW2_ELBTU);
 		break;
 	case NVME_NVM_PIF_64B_GUARD:
-		cdw14 = NVME_SET(reftag, NVM_CDW14_ELBTL);
-		cdw3 = NVME_SET((reftag >> 32) & 0xffff, NVM_CDW3_ELBTU);
-		cdw14 |= NVME_SET(storage_tag << (48 - sts),  NVM_CDW14_ELBTL);
+		cdw14 = NVME_SET(reftag, IOCS_COMMON_CDW14_ELBTL);
+		cdw3 = NVME_SET((reftag >> 32) & 0xffff, IOCS_COMMON_CDW3_ELBTU);
+		cdw14 |= NVME_SET(storage_tag << (48 - sts),  IOCS_COMMON_CDW14_ELBTL);
 		if (sts >= 16)
-			cdw3 |= NVME_SET((storage_tag >> (sts - 16)) & 0xffff, NVM_CDW3_ELBTU);
+			cdw3 |= NVME_SET((storage_tag >> (sts - 16)) & 0xffff,
+					IOCS_COMMON_CDW3_ELBTU);
 		else
-			cdw3 |= NVME_SET((storage_tag << (16 - sts)) & 0xffff, NVM_CDW3_ELBTU);
+			cdw3 |= NVME_SET((storage_tag << (16 - sts)) & 0xffff,
+					IOCS_COMMON_CDW3_ELBTU);
 		break;
 	default:
 		perror("Unsupported Protection Information Format");
@@ -4575,10 +4580,10 @@ static inline int nvme_io(nvme_link_t l, __u8 opcode, __u32 nsid, __u64 slba,
 			  void *metadata, __u32 metadata_len,
 			  __u32 *result)
 {
-	__u32 cdw10 = NVME_SET(slba, NVM_CDW10_SLBAL);
-	__u32 cdw11 = NVME_SET(slba >> 32, NVM_CDW11_SLBAU);
-	__u32 cdw15 = NVME_SET(lbat, NVM_CDW15_ELBAT) |
-		      NVME_SET(lbatm, NVM_CDW15_ELBATM);
+	__u32 cdw10 = NVME_SET(slba, IOCS_COMMON_CDW10_SLBAL);
+	__u32 cdw11 = NVME_SET(slba >> 32, IOCS_COMMON_CDW11_SLBAU);
+	__u32 cdw15 = NVME_SET(lbat, IOCS_COMMON_CDW15_ELBAT) |
+		      NVME_SET(lbatm, IOCS_COMMON_CDW15_ELBATM);
 
 	struct nvme_passthru_cmd cmd = {
 		.opcode		= opcode,
@@ -4645,10 +4650,10 @@ static inline int nvme_read(nvme_link_t l, __u32 nsid, __u64 slba,
 			    void *metadata, __u32 metadata_len,
 			    __u32 *result)
 {
-	__u32 cdw12 = NVME_SET(nlb, NVM_CDW12_NLB) |
-		      NVME_SET(control, NVM_CDW12_CONTROL);
-	__u32 cdw13 = NVME_SET(dsm, NVM_CDW13_DSM) |
-		      NVME_SET(cev, NVM_CDW13_CEV);
+	__u32 cdw12 = NVME_SET(nlb, IOCS_COMMON_CDW12_NLB) |
+		      NVME_SET(control, IOCS_COMMON_CDW12_CONTROL);
+	__u32 cdw13 = NVME_SET(dsm, IOCS_COMMON_CDW13_DSM) |
+		      NVME_SET(cev, IOCS_COMMON_CDW13_CEV);
 
 	return nvme_io(l, nvme_cmd_read, nsid, slba,
 		       cdw12, cdw13,
@@ -4703,11 +4708,11 @@ static inline int nvme_write(nvme_link_t l, __u32 nsid, __u64 slba,
 			    void *metadata, __u32 metadata_len,
 			    __u32 *result)
 {
-	__u32 cdw12 = NVME_SET(nlb, NVM_CDW12_NLB) |
-		      NVME_SET(control, NVM_CDW12_CONTROL);
-	__u32 cdw13 = NVME_SET(dspec, NVM_CDW13_DSPEC) |
-		      NVME_SET(dsm, NVM_CDW13_DSM) |
-		      NVME_SET(cev, NVM_CDW13_CEV);
+	__u32 cdw12 = NVME_SET(nlb, IOCS_COMMON_CDW12_NLB) |
+		      NVME_SET(control, IOCS_COMMON_CDW12_CONTROL);
+	__u32 cdw13 = NVME_SET(dspec, IOCS_COMMON_CDW13_DSPEC) |
+		      NVME_SET(dsm, IOCS_COMMON_CDW13_DSM) |
+		      NVME_SET(cev, IOCS_COMMON_CDW13_CEV);
 
 	return nvme_io(l, nvme_cmd_write, nsid, slba,
 		       cdw12, cdw13,
@@ -4759,9 +4764,9 @@ static inline int nvme_compare(nvme_link_t l, __u32 nsid, __u64 slba,
 			       void *metadata, __u32 metadata_len,
 			       __u32 *result)
 {
-	__u32 cdw12 = NVME_SET(nlb, NVM_CDW12_NLB) |
-		      NVME_SET(control, NVM_CDW12_CONTROL);
-	__u32 cdw13 = NVME_SET(cev, NVM_CDW13_CEV);
+	__u32 cdw12 = NVME_SET(nlb, IOCS_COMMON_CDW12_NLB) |
+		      NVME_SET(control, IOCS_COMMON_CDW12_CONTROL);
+	__u32 cdw13 = NVME_SET(cev, IOCS_COMMON_CDW13_CEV);
 
 	return nvme_io(l, nvme_cmd_compare, nsid, slba,
 		       cdw12, cdw13,
@@ -4815,11 +4820,11 @@ static inline int nvme_write_zeros(nvme_link_t l, __u32 nsid, __u64 slba,
 				   __u16 lbat, __u16 lbatm,
 				   __u32 *result)
 {
-	__u32 cdw12 = NVME_SET(nlb, NVM_CDW12_NLB) |
-		      NVME_SET(control, NVM_CDW12_CONTROL);
-	__u32 cdw13 = NVME_SET(dspec, NVM_CDW13_DSPEC) |
-		      NVME_SET(dsm, NVM_CDW13_DSM) |
-		      NVME_SET(cev, NVM_CDW13_CEV);
+	__u32 cdw12 = NVME_SET(nlb, IOCS_COMMON_CDW12_NLB) |
+		      NVME_SET(control, IOCS_COMMON_CDW12_CONTROL);
+	__u32 cdw13 = NVME_SET(dspec, IOCS_COMMON_CDW13_DSPEC) |
+		      NVME_SET(dsm, IOCS_COMMON_CDW13_DSM) |
+		      NVME_SET(cev, IOCS_COMMON_CDW13_CEV);
 
 	return nvme_io(l, nvme_cmd_write_zeroes, nsid, slba,
 		       cdw12, cdw13,
@@ -4853,9 +4858,9 @@ static inline int nvme_write_uncorrectable(nvme_link_t l, __u32 nsid, __u64 slba
 					   __u16 dspec,
 					   __u32 *result)
 {
-	__u32 cdw12 = NVME_SET(nlb, NVM_CDW12_NLB) |
-		      NVME_SET(control, NVM_CDW12_CONTROL);
-	__u32 cdw13 = NVME_SET(dspec, NVM_CDW13_DSPEC);
+	__u32 cdw12 = NVME_SET(nlb, IOCS_COMMON_CDW12_NLB) |
+		      NVME_SET(control, IOCS_COMMON_CDW12_CONTROL);
+	__u32 cdw13 = NVME_SET(dspec, IOCS_COMMON_CDW13_DSPEC);
 
 	return nvme_io(l, nvme_cmd_write_uncor, nsid, slba,
 		       cdw12, cdw13,
@@ -5008,8 +5013,8 @@ static inline int nvme_copy(nvme_link_t l, __u32 nsid, __u64 sdlba, __u16 nr, __
 		      NVME_SET(prinfow, COPY_CDW12_PRINFOW) |
 		      NVME_SET(fua, COPY_CDW12_FUA) |
 		      NVME_SET(lr, COPY_CDW12_LR);
-	__u32 cdw13 = NVME_SET(cev, NVM_CDW13_CEV) |
-		      NVME_SET(dspec, NVM_CDW13_DSPEC);
+	__u32 cdw13 = NVME_SET(cev, IOCS_COMMON_CDW13_CEV) |
+		      NVME_SET(dspec, IOCS_COMMON_CDW13_DSPEC);
 	__u32 data_len;
 
 	switch (desfmt) {
