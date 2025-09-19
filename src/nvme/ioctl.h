@@ -5406,10 +5406,21 @@ static inline int nvme_zns_report_zones(nvme_link_t l, __u32 nsid, __u64 slba,
  * @control:    Upper 16 bits of cdw12
  * @cev:	Command Extension Value
  * @dspec:	Directive Specific
- * @lbatm:	Logical block application tag mask
  * @lbat:	Logical block application tag
- * @ilbrt_u64:	Initial logical block reference tag - 8 byte
- *              version required for enhanced protection info
+ * @lbatm:	Logical block application tag mask
+ * @elbas:	Extended LBA Formats Supported
+ *			(see Controller Attributes (CTRATT))
+ * @sts:	Storage tag size in bits, set by namespace Extended LBA Format
+ * @pif:	Protection information format, determines how variable sized
+ *		storage_tag and reftag are put into dwords 2, 3, and 14. Set by
+ *		namespace Extended LBA Format.
+ * @storage_tag: This filed specifies Variable Sized Expected Logical Block
+ *		Storage Tag (ELBST) or Logical Block Storage Tag (LBST)
+ * @reftag:	This field specifies the variable sized Expected Initial
+ *		Logical Block Reference Tag (EILBRT) or Initial Logical Block
+ *		Reference Tag (ILBRT). It is the 8 byte version required for
+ *		enhanced protection information.  Used only if the namespace is
+ *		formatted to use end-to-end protection information.
  * @metadata:	Userspace address of the metadata
  * @metadata_len: Length of @metadata
  * @data:	Userspace address of the data
@@ -5420,22 +5431,19 @@ static inline int nvme_zns_report_zones(nvme_link_t l, __u32 nsid, __u64 slba,
  * received (see &enum nvme_status_field) or a negative error otherwise.
  */
 static inline int nvme_zns_append(nvme_link_t l, __u32 nsid, __u64 zslba, __u16 nlb,
-				  __u16 control, __u16 cev, __u16 dspec,
-				  __u16 lbat, __u16 lbatm, __u64 ilbrt_u64,
+				  __u16 control, __u16 cev, __u16 dspec, __u16 lbat, __u16 lbatm,
+				  bool elbas, __u8 sts, __u8 pif, __u64 storage_tag, __u64 reftag,
 				  void *metadata, __u32 metadata_len,
 				  void *data, __u32 data_len, __u64 *result)
 {
-	__u32 cdw3 = (ilbrt_u64 >> 32) & 0xffffffff;
 	__u32 cdw10 = zslba & 0xffffffff;
 	__u32 cdw11 = zslba >> 32;
 	__u32 cdw12 = nlb | (control << 16);
-	__u32 cdw14 = ilbrt_u64 & 0xffffffff;
 	__u32 cdw15 = lbat | (lbatm << 16);
 
 	struct nvme_passthru_cmd64 cmd = {
 		.opcode		= nvme_zns_cmd_append,
 		.nsid		= nsid,
-		.cdw3		= cdw3,
 		.metadata	= (__u64)(uintptr_t)metadata,
 		.addr		= (__u64)(uintptr_t)data,
 		.metadata_len	= metadata_len,
@@ -5443,9 +5451,13 @@ static inline int nvme_zns_append(nvme_link_t l, __u32 nsid, __u64 zslba, __u16 
 		.cdw10		= cdw10,
 		.cdw11		= cdw11,
 		.cdw12		= cdw12,
-		.cdw14		= cdw14,
 		.cdw15		= cdw15,
 	};
+
+	if (elbas &&
+	    nvme_set_var_size_tags(pif, sts, reftag, storage_tag,
+				   &cmd.cdw2, &cmd.cdw3, &cmd.cdw14))
+		return -EINVAL;
 
 	return nvme_submit_io_passthru64(l, &cmd, result);
 }

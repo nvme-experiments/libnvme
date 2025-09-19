@@ -18,7 +18,6 @@ static void test_zns_append(void)
 {
 	__u8 expected_data[8], data[8] = {};
 	__u64 zslba = TEST_SLBA;
-	__u64 ilbrt_u64 = 0x76;
 	__u16 control = 0xcd;
 	__u16 cev = 0;
 	__u16 dspec = 0;
@@ -26,16 +25,21 @@ static void test_zns_append(void)
 	__u16 lbat = 0xef;
 	__u16 nlb = 0xab;
 	__u64 result = 0;
+	bool elbas = true;
+	__u8 sts = 48;
+	__u8 pif = NVME_NVM_PIF_32B_GUARD;
+	__u64 storage_tag = 0x12;
+	__u64 reftag = 0x1234;
 	int err;
 
 	struct mock_cmd mock_io_cmd = {
 		.opcode = nvme_zns_cmd_append,
 		.nsid = TEST_NSID,
-		.cdw3 = (ilbrt_u64 >> 32) & 0xffffffff,
+		.cdw3 = storage_tag,
 		.cdw10 = zslba & 0xffffffff,
 		.cdw11 = zslba >> 32,
 		.cdw12 = nlb | (control << 16),
-		.cdw14 = ilbrt_u64 & 0xffffffff,
+		.cdw14 = reftag,
 		.cdw15 = lbat | (lbatm << 16),
 		.data_len = sizeof(expected_data),
 		.out_data = &expected_data,
@@ -44,7 +48,8 @@ static void test_zns_append(void)
 	arbitrary(&expected_data, sizeof(expected_data));
 	set_mock_io_cmds(&mock_io_cmd, 1);
 	err = nvme_zns_append(test_link, TEST_NSID, zslba, nlb, control,
-			      cev, dspec, lbat, lbatm, ilbrt_u64,
+			      cev, dspec, lbat, lbatm,
+				  elbas, sts, pif, storage_tag, reftag,
 			      NULL, 0, &data, sizeof(data), &result);
 	end_mock_cmds();
 	check(err == 0, "returned error %d", err);
