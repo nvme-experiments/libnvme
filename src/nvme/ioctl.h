@@ -5447,10 +5447,12 @@ static inline int nvme_zns_append(nvme_link_t l, __u32 nsid, __u64 zslba, __u16 
 				  void *metadata, __u32 metadata_len,
 				  __u64 *result)
 {
-	__u32 cdw10 = zslba & 0xffffffff;
-	__u32 cdw11 = zslba >> 32;
-	__u32 cdw12 = nlb | (control << 16);
-	__u32 cdw15 = lbat | (lbatm << 16);
+	__u32 cdw10 = NVME_SET(zslba, IOCS_COMMON_CDW10_SLBAL);
+	__u32 cdw11 = NVME_SET(zslba >> 32, IOCS_COMMON_CDW11_SLBAU);
+	__u32 cdw12 = NVME_SET(nlb, IOCS_COMMON_CDW12_NLB) |
+		NVME_SET(control, IOCS_COMMON_CDW12_CONTROL);
+	__u32 cdw15 = NVME_SET(lbat, IOCS_COMMON_CDW15_ELBAT) |
+		NVME_SET(lbatm, IOCS_COMMON_CDW15_ELBATM);
 
 	struct nvme_passthru_cmd64 cmd = {
 		.opcode		= nvme_zns_cmd_append,
