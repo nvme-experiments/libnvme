@@ -3988,8 +3988,7 @@ static inline int nvme_security_send(nvme_link_t l, __u32 nsid, __u8 nssf,
  * @l:		Link handle
  * @nsid:	Namespace ID to issue security command on
  * @nssf:	NVMe Security Specific field
- * @spsp0:	Security Protocol Specific field
- * @spsp1:	Security Protocol Specific field
+ * @spsp:	Security Protocol Specific field
  * @secp:	Security Protocol
  * @al:		Protocol specific allocation length
  * @data:	Security data payload to send
@@ -3999,15 +3998,14 @@ static inline int nvme_security_send(nvme_link_t l, __u32 nsid, __u8 nssf,
  * Return: 0 on success, the nvme command status if a response was
  * received (see &enum nvme_status_field) or a negative error otherwise.
  */
-static inline int nvme_security_receive(nvme_link_t l, __u32 nsid,
-					__u8 nssf, __u8 spsp0,
-					__u8 spsp1, __u8 secp,
-					__u32 al, void *data,
-					__u32 data_len, __u32 *result)
+static inline int nvme_security_receive(nvme_link_t l, __u32 nsid, __u8 nssf,
+					__u16 spsp, __u8 secp, __u32 al,
+					void *data, __u32 data_len,
+					__u32 *result)
 {
 	__u32 cdw10 = NVME_SET(secp, SECURITY_SECP) |
-		      NVME_SET(spsp0, SECURITY_SPSP0) |
-		      NVME_SET(spsp1, SECURITY_SPSP1) |
+		      NVME_SET(spsp, SECURITY_SPSP0) |
+		      NVME_SET((spsp >> 8), SECURITY_SPSP1) |
 		      NVME_SET(nssf, SECURITY_NSSF);
 	__u32 cdw11 = al;
 
@@ -5057,7 +5055,7 @@ static inline int nvme_dsm(nvme_link_t l, __u32 nsid, __u16 nr_ranges,
 static inline int nvme_copy(nvme_link_t l, __u32 nsid, __u64 sdlba, __u16 nr, __u8 desfmt,
 			    __u8 prinfor, __u8 prinfow, __u8 cetype, __u8 dtype, bool stcw,
 			    bool stcr, bool fua, bool lr, __u16 cev, __u16 dspec,
-			    bool elbas, __u8 sts, __u8 pif, __u64 storage_tag, __u32 reftag,
+			    bool elbas, __u8 sts, __u8 pif, __u64 storage_tag, __u64 reftag,
 			    __u16 lbat, __u16 lbatm,
 			    void *cpydsc, __u32 *result)
 {
