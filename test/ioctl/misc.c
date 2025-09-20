@@ -332,8 +332,8 @@ static void test_security_receive(void)
 
 	arbitrary(&expected_data, sizeof(expected_data));
 	set_mock_admin_cmds(&mock_admin_cmd, 1);
-	err = nvme_security_receive(test_link, TEST_NSID, nssf, spsp0, spsp1,
-				    secp, al, &data, sizeof(data), &result);
+	err = nvme_security_receive(test_link, TEST_NSID, nssf, spsp0 | (spsp1 << 8), secp, al,
+				    &data, sizeof(data), &result);
 	end_mock_cmds();
 	check(err == 0, "returned error %d", err);
 	check(result == 0, "returned result %u", result);

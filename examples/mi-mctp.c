@@ -569,7 +569,7 @@ int do_security_info(nvme_mi_ep_t ep, int argc, char **argv)
 		return -1;
 	}
 
-	rc = nvme_security_receive(link, 0, 0, 0, 0, 0, 0, data, data_len, NULL);
+	rc = nvme_security_receive(link, 0, 0, 0, 0, 0, data, data_len, NULL);
 	if (rc) {
 		warnx("can't perform Security Receive command: rc %d", rc);
 		return -1;
