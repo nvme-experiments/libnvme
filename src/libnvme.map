@@ -84,6 +84,7 @@ LIBNVME_2_0 {
 		nvme_get_ctrl_telemetry;
 		nvme_get_debug;
 		nvme_get_directive_receive_length;
+		nvme_get_feature_length;
 		nvme_get_host_telemetry;
 		nvme_get_log_partial;
 		nvme_get_logging_level;
