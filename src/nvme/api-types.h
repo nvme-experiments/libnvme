@@ -15,8 +15,6 @@
 
 #include <stdio.h>
 
-#include <nvme/types.h>
-
 struct nvme_global_ctx;
 struct nvme_transport_handle;
 
