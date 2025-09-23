@@ -15,6 +15,8 @@
 
 #include <linux/types.h>
 
+#include <nvme/api-types.h>
+
 /**
  * DOC: types.h
  *
