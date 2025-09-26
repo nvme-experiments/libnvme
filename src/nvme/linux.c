@@ -181,7 +181,7 @@ bool nvme_link_is_mi(nvme_link_t l)
 
 const char *nvme_link_get_name(nvme_link_t l)
 {
-	return l->name;
+	return basename(l->name);
 }
 
 int nvme_fw_download_seq(nvme_link_t l, __u32 size, __u32 xfer, __u32 offset,
