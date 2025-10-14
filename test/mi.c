@@ -1584,12 +1584,13 @@ static int test_admin_fw_download_cb(struct nvme_mi_ep *ep,
 
 static void test_admin_fw_download(struct nvme_mi_ep *ep)
 {
-	struct nvme_fw_download_args args;
+	struct nvme_fw_download_args args = { 0 };
 	struct fw_download_info info;
 	unsigned char fw[4096];
 	struct nvme_transport_handle *hdl;
 	int rc, i;
 
+	printf("\n%d\n", __LINE__);
 	for (i = 0; i < sizeof(fw); i++)
 		fw[i] = i % 0xff;
 
@@ -1674,7 +1675,7 @@ static int test_admin_fw_commit_cb(struct nvme_mi_ep *ep,
 
 static void test_admin_fw_commit(struct nvme_mi_ep *ep)
 {
-	struct nvme_fw_commit_args args;
+	struct nvme_fw_commit_args args = { 0 };
 	struct fw_commit_info info;
 	struct nvme_transport_handle *hdl;
 	int rc;
@@ -2141,6 +2142,7 @@ static void run_test(struct test *test, FILE *logfd, nvme_mi_ep_t ep)
 {
 	printf("Running test %s...", test->name);
 	fflush(stdout);
+	printf("\n%d %p %p", __LINE__, test->fn, ep);
 	test->fn(ep);
 	/* tests will assert on failure; if we're here, we're OK */
 	printf("  OK\n");
