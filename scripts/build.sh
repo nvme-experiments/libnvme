@@ -126,7 +126,7 @@ build_meson() {
 
 test_meson() {
     "${MESON}" test                             \
-        -C "${BUILDDIR}" 
+        -C "${BUILDDIR}"  -v
 }
 
 test_meson_coverage() {
