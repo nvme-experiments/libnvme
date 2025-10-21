@@ -793,7 +793,7 @@ static void test_get_log_reachability_groups(void)
 		.nsid = NVME_NSID_ALL,
 		.data_len = sizeof(expected_log),
 		.cdw10 = (NVME_LOG_LID_REACHABILITY_GROUPS << 0) |
-			 (!!TEST_LSP << 8) | (!!TEST_RAE << 15) |
+			 ((TEST_LSP != 0) << 8) | (!!TEST_RAE << 15) |
 			 (((sizeof(expected_log) >> 2) - 1) << 16),
 		.out_data = &expected_log,
 	};
@@ -802,7 +802,7 @@ static void test_get_log_reachability_groups(void)
 
 	arbitrary(&expected_log, sizeof(expected_log));
 	set_mock_admin_cmds(&mock_admin_cmd, 1);
-	nvme_init_get_log_reachability_groups(&cmd, !!TEST_LSP, &log,
+	nvme_init_get_log_reachability_groups(&cmd, TEST_LSP != 0, &log,
 					      sizeof(log));
 	err = nvme_get_log(test_hdl, &cmd, TEST_RAE,
 			   NVME_LOG_PAGE_PDU_SIZE, NULL);
@@ -819,7 +819,7 @@ static void test_get_log_reachability_associations(void)
 		.nsid = NVME_NSID_ALL,
 		.data_len = sizeof(expected_log),
 		.cdw10 = (NVME_LOG_LID_REACHABILITY_ASSOCIATIONS << 0) |
-			 (!!TEST_LSP << 8) | (!!TEST_RAE << 15) |
+			 ((TEST_LSP != 0) << 8) | (!!TEST_RAE << 15) |
 			 (((sizeof(expected_log) >> 2) - 1) << 16),
 		.out_data = &expected_log,
 	};
@@ -828,7 +828,7 @@ static void test_get_log_reachability_associations(void)
 
 	arbitrary(&expected_log, sizeof(expected_log));
 	set_mock_admin_cmds(&mock_admin_cmd, 1);
-	nvme_init_get_log_reachability_associations(&cmd, !!TEST_LSP, &log,
+	nvme_init_get_log_reachability_associations(&cmd, TEST_LSP != 0, &log,
 						    sizeof(log));
 	err = nvme_get_log(test_hdl, &cmd, TEST_RAE,
 			   NVME_LOG_PAGE_PDU_SIZE, NULL);
@@ -895,7 +895,7 @@ static void test_get_log_host_discover(void)
 		.nsid = NVME_NSID_ALL,
 		.data_len = sizeof(expected_log),
 		.cdw10 = (NVME_LOG_LID_HOST_DISCOVERY << 0) |
-			 (!!TEST_LSP << 8) |
+			 ((TEST_LSP != 0) << 8) |
 			 (!!TEST_RAE << 15) |
 			 (((sizeof(expected_log) >> 2) - 1) << 16),
 		.out_data = &expected_log,
@@ -905,7 +905,7 @@ static void test_get_log_host_discover(void)
 
 	arbitrary(&expected_log, sizeof(expected_log));
 	set_mock_admin_cmds(&mock_admin_cmd, 1);
-	nvme_init_get_log_host_discovery(&cmd, !!TEST_LSP, &log, sizeof(log));
+	nvme_init_get_log_host_discovery(&cmd, TEST_LSP != 0, &log, sizeof(log));
 	err = nvme_get_log(test_hdl, &cmd, TEST_RAE,
 			   NVME_LOG_PAGE_PDU_SIZE, NULL);
 	end_mock_cmds();
