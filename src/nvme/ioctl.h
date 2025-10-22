@@ -5040,14 +5040,61 @@ nvme_init_dim_send(struct nvme_passthru_cmd *cmd,
 }
 
 /**
- * nvme_lm_cdq() - Controller Data Queue - Controller Data Queue command
- * @hdl:	Transport handle
- * @args:	&struct nvme_lm_cdq_args argument structure
+ * nvme_init_lm_cdq() - Initialize passthru command for
+ * Controller Data Queue - Controller Data Queue command
+ * @cmd:	Passthru command to use
+ * @sel:	Select (SEL): This field specifies the type of management
+ * 		operation to perform.
+ * @mos:	Management Operation Specific (MOS): This field is
+ * 		specific to the SEL type
+ * @cntlid:	Controller ID: For Create CDQ, specifies the target
+ * 		migratable controller
+ * @sz:		For Create CDQ, specifies the size of CDQ, in dwords - 4 byte
+ * @data:	Pointer to data buffer
+ * @cdqid:	Controller Data Queue ID (CDQID): For Delete CDQ, this
+ * 		field is the CDQID to delete.
  *
- * Return: The nvme command status if a response was received (see
- * &enum nvme_status_field) or -1 with errno set otherwise.)
+ * Initializes the passthru command buffer for the Controller Data Queue command.
+ * Note: For Create CDQ, the result CDQID is returned in the CQE dword0, which
+ * the submission function must handle. For Delete CDQ, cdqid_in is used in cdw11.
  */
-int nvme_lm_cdq(struct nvme_transport_handle *hdl, struct nvme_lm_cdq_args *args);
+static inline void
+nvme_init_lm_cdq(struct nvme_passthru_cmd *cmd, __u8 sel,
+		__u16 mos, __u16 cntlid, __u32 sz, void *data, __u16 cdqid)
+{
+	__u32 cdw11 = 0, len = 0;
+
+	memset(cmd, 0, sizeof(*cmd));
+
+	if (sel == NVME_LM_SEL_CREATE_CDQ) {
+		__u16 cqs = NVME_FIELD_ENCODE(cntlid,
+				NVME_LM_CREATE_CDQ_CNTLID_SHIFT,
+				NVME_LM_CREATE_CDQ_CNTLID_MASK);
+		cdw11 = NVME_FIELD_ENCODE(NVME_LM_CREATE_CDQ_PC,
+				NVME_LM_CREATE_CDQ_PC_SHIFT,
+				NVME_LM_CREATE_CDQ_PC_MASK) |
+			NVME_FIELD_ENCODE(cqs,
+				NVME_LM_CQS_SHIFT,
+				NVME_LM_CQS_MASK);
+		len = sz << 2;
+	} else if (sel == NVME_LM_SEL_DELETE_CDQ) {
+		cdw11 = NVME_FIELD_ENCODE(cdqid,
+				  NVME_LM_DELETE_CDQ_CDQID_SHIFT,
+				  NVME_LM_DELETE_CDQ_CDQID_MASK);
+	}
+
+	cmd->opcode = nvme_admin_ctrl_data_queue;
+	cmd->data_len = len;
+	cmd->addr = (__u64)(uintptr_t)data;
+	cmd->cdw10 = NVME_FIELD_ENCODE(sel,
+			NVME_LM_CDQ_SEL_SHIFT,
+			NVME_LM_CDQ_SEL_MASK) |
+		      NVME_FIELD_ENCODE(mos,
+			NVME_LM_CDQ_MOS_SHIFT,
+			NVME_LM_CDQ_MOS_MASK);
+	cmd->cdw11 = cdw11;
+	cmd->cdw12 = sz;
+}
 
 /**
  * nvme_lm_track_send() - Track Send command
