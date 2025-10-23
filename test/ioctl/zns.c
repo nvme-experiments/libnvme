@@ -24,7 +24,7 @@ static void test_zns_append(void)
 	__u16 lbatm = 0x98;
 	__u16 lbat = 0xef;
 	__u16 nlb = 0xab;
-	__u64 result = 0;
+	__u32 result = 0;
 	bool elbas = true;
 	__u8 sts = 48;
 	__u8 pif = NVME_NVM_PIF_32B_GUARD;
@@ -42,7 +42,7 @@ static void test_zns_append(void)
 		.data_len = sizeof(expected_data),
 		.out_data = &expected_data,
 	};
-	struct nvme_passthru_cmd64 cmd;
+	struct nvme_passthru_cmd cmd;
 	int err;
 
 	arbitrary(&expected_data, sizeof(expected_data));
@@ -52,7 +52,7 @@ static void test_zns_append(void)
 	if (elbas)
 		nvme_init_var_size_tags(&cmd, pif, sts, reftag, storage_tag);
 	nvme_init_app_tag(&cmd, lbat, lbatm);
-	err = nvme_submit_io_passthru64(test_hdl, &cmd, &result);
+	err = nvme_submit_io_passthru(test_hdl, &cmd, &result);
 	end_mock_cmds();
 	check(err == 0, "returned error %d", err);
 	check(result == 0, "wrong result");
