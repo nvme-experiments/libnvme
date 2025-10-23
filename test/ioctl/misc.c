@@ -791,7 +791,7 @@ static void test_read(void)
 	set_mock_io_cmds(&mock_io_cmd, 1);
 	nvme_init_read(&cmd, TEST_NSID, slba, nlb, control, dsm, 0,
 		data, sizeof(data), NULL, 0);
-	nvme_init_app_tag((struct nvme_passthru_cmd64 *)&cmd, apptag, appmask);
+	nvme_init_app_tag(&cmd, apptag, appmask);
 	err = nvme_submit_io_passthru(test_hdl, &cmd, &result);
 	end_mock_cmds();
 	check(err == 0, "returned error %d", err);
@@ -827,7 +827,7 @@ static void test_write(void)
 	set_mock_io_cmds(&mock_io_cmd, 1);
 	nvme_init_write(&cmd, TEST_NSID, slba, nlb, control, dspec, dsm, 0,
 		expected_data, sizeof(expected_data), NULL, 0);
-	nvme_init_app_tag((struct nvme_passthru_cmd64 *)&cmd, apptag, appmask);
+	nvme_init_app_tag(&cmd, apptag, appmask);
 	err = nvme_submit_io_passthru(test_hdl, &cmd, &result);
 	end_mock_cmds();
 	check(err == 0, "returned error %d", err);
@@ -862,7 +862,7 @@ static void test_compare(void)
 	set_mock_io_cmds(&mock_io_cmd, 1);
 	nvme_init_compare(&cmd, TEST_NSID, slba, nlb, control, cev, data,
 		sizeof(data), NULL, 0);
-	nvme_init_app_tag((struct nvme_passthru_cmd64 *)&cmd, apptag, appmask);
+	nvme_init_app_tag(&cmd, apptag, appmask);
 	err = nvme_submit_io_passthru(test_hdl, &cmd, &result);
 	end_mock_cmds();
 	check(err == 0, "returned error %d", err);
@@ -895,7 +895,7 @@ static void test_write_zeros(void)
 	set_mock_io_cmds(&mock_io_cmd, 1);
 	nvme_init_write_zeros(&cmd, TEST_NSID, slba, nlb, control,
 		dspec, dsm, cev);
-	nvme_init_app_tag((struct nvme_passthru_cmd64 *)&cmd, apptag, appmask);
+	nvme_init_app_tag(&cmd, apptag, appmask);
 	err = nvme_submit_io_passthru(test_hdl, &cmd, &result);
 	end_mock_cmds();
 	check(err == 0, "returned error %d", err);
@@ -927,7 +927,7 @@ static void test_write_uncorrectable(void)
 	set_mock_io_cmds(&mock_io_cmd, 1);
 	nvme_init_write_uncorrectable(&cmd, TEST_NSID, slba, nlb,
 		control, dspec);
-	nvme_init_app_tag((struct nvme_passthru_cmd64 *)&cmd, apptag, appmask);
+	nvme_init_app_tag(&cmd, apptag, appmask);
 	err = nvme_submit_io_passthru(test_hdl, &cmd, &result);
 	end_mock_cmds();
 	check(err == 0, "returned error %d", err);
@@ -958,7 +958,7 @@ static void test_verify(void)
 	set_mock_io_cmds(&mock_io_cmd, 1);
 	nvme_init_verify(&cmd, TEST_NSID, slba, nlb, control, cev,
 		NULL, 0, NULL, 0);
-	nvme_init_app_tag((struct nvme_passthru_cmd64 *)&cmd, apptag, appmask);
+	nvme_init_app_tag(&cmd, apptag, appmask);
 	err = nvme_submit_io_passthru(test_hdl, &cmd, &result);
 	end_mock_cmds();
 	check(err == 0, "returned error %d", err);

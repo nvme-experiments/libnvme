@@ -4439,7 +4439,7 @@ nvme_init_dsm(struct nvme_passthru_cmd *cmd,
  * the command-specific init function (like nvme_init_zns_append).
  */
 static inline int
-nvme_init_var_size_tags(struct nvme_passthru_cmd64 *cmd,
+nvme_init_var_size_tags(struct nvme_passthru_cmd *cmd,
 		__u8 pif, __u8 sts, __u64 reftag, __u64 storage_tag)
 {
 	__u32 cdw2 = 0, cdw3 = 0, cdw14 = 0;
@@ -4513,7 +4513,7 @@ nvme_init_var_size_tags(struct nvme_passthru_cmd64 *cmd,
  * @lbatm:	Logical block application tag mask
  */
 static inline void
-nvme_init_app_tag(struct nvme_passthru_cmd64 *cmd,
+nvme_init_app_tag(struct nvme_passthru_cmd *cmd,
 	__u16 lbat, __u16 lbatm)
 {
 	cmd->cdw15 = NVME_FIELD_ENCODE(lbat,
@@ -5256,7 +5256,7 @@ nvme_init_zns_report_zones(struct nvme_passthru_cmd *cmd, __u32 nsid,
  * Initializes the passthru command buffer for the ZNS Append command.
  */
 static inline void
-nvme_init_zns_append(struct nvme_passthru_cmd64 *cmd, __u32 nsid,
+nvme_init_zns_append(struct nvme_passthru_cmd *cmd, __u32 nsid,
 		__u64 zslba, __u16 nlb, __u16 control, __u16 cev, __u16 dspec,
 		void *data, __u32 data_len, void *metadata, __u32 metadata_len)
 {
