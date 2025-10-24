@@ -118,12 +118,9 @@ PyObject *hostid_from_file();
 
 %exception nvme_ctrl::connect {
 	connect_err = 0;
-	errno = 0;
 	$action  /* $action sets connect_err to non-zero value on failure */
-	if (connect_err == 1) {
-		SWIG_exception(SWIG_AttributeError, "Existing controller connection");
-	} else if (connect_err) {
-		const char *errstr = nvme_errno_to_string(errno);
+	if (connect_err) {
+		const char *errstr = nvme_errno_to_string(-connect_err);
 		if (errstr) {
 			SWIG_exception(SWIG_RuntimeError, errstr);
 		} else {
@@ -136,7 +133,12 @@ PyObject *hostid_from_file();
 	discover_err = 0;
 	$action  /* $action sets discover_err to non-zero value on failure */
 	if (discover_err) {
-		SWIG_exception(SWIG_RuntimeError, "Discover failed");
+		const char *errstr = nvme_errno_to_string(-discover_err);
+		if (errstr) {
+			SWIG_exception(SWIG_RuntimeError, errstr);
+		} else {
+			SWIG_exception(SWIG_RuntimeError, "Discover failed");
+		}
 	}
 }
 
@@ -699,7 +701,7 @@ struct nvme_ns {
 
 		dev = nvme_ctrl_get_name($self);
 		if (dev && !cfg->duplicate_connect) {
-			connect_err = 1;
+			connect_err = -ENVME_CONNECT_ALREADY;
 			return;
 		}
 
@@ -707,8 +709,8 @@ struct nvme_ns {
 		    ret = nvmf_add_ctrl(h, $self, cfg);
 		Py_END_ALLOW_THREADS    /* Reacquire Python GIL */
 
-		if (ret < 0) {
-			connect_err = 2;
+		if (ret) {
+			connect_err = ret;
 			return;
 		}
 	}
@@ -769,10 +771,9 @@ struct nvme_ns {
 		};
 
 		Py_BEGIN_ALLOW_THREADS  /* Release Python GIL */
-		    nvmf_get_discovery_wargs(&args, &logp);
+		    discover_err = nvmf_get_discovery_wargs(&args, &logp);
 		Py_END_ALLOW_THREADS    /* Reacquire Python GIL */
 
-		if (logp == NULL) discover_err = 1;
 		return logp;
 	}
 
@@ -788,7 +789,7 @@ struct nvme_ns {
 		    ret = nvme_get_log(nvme_ctrl_get_transport_handle($self), &cmd, rae, NVME_LOG_PAGE_PDU_SIZE, NULL);
 		Py_END_ALLOW_THREADS    /* Reacquire Python GIL */
 
-		if (ret < 0) {
+		if (ret) {
 			Py_RETURN_NONE;
 		}
 
