@@ -5693,4 +5693,89 @@ nvme_zns_identify_ns(struct nvme_transport_handle *hdl,
 
 	return nvme_submit_admin_passthru(hdl, &cmd, NULL);
 }
+
+static inline int
+nvme_get_csi_log(struct nvme_transport_handle *hdl, __u32 nsid,
+		enum nvme_cmd_get_log_lid lid, bool rae, enum nvme_csi csi,
+		void *data, __u32 len)
+{
+	struct nvme_passthru_cmd cmd;
+
+	nvme_init_get_log(&cmd, nsid, lid, csi, data, len);
+
+	return nvme_get_log(hdl, &cmd, rae, NVME_LOG_PAGE_PDU_SIZE, NULL);
+}
+
+static inline int
+nvme_get_nsid_log(struct nvme_transport_handle *hdl, __u32 nsid,
+		enum nvme_cmd_get_log_lid lid, bool rae, void *data, __u32 len)
+{
+	struct nvme_passthru_cmd cmd;
+
+	nvme_init_get_log(&cmd, nsid, lid, NVME_CSI_NVM, data, len);
+
+	return nvme_get_log(hdl, &cmd, rae, NVME_LOG_PAGE_PDU_SIZE, NULL);
+}
+
+static inline int
+nvme_get_log_simple(struct nvme_transport_handle *hdl,
+		enum nvme_cmd_get_log_lid lid, void *data, __u32 len)
+{
+	return nvme_get_nsid_log(hdl, NVME_NSID_ALL, lid, false, data, len);
+}
+
+static inline int
+nvme_get_log_smart(struct nvme_transport_handle *hdl,
+		__u32 nsid, bool rae, struct nvme_smart_log *smart_log)
+{
+	struct nvme_passthru_cmd cmd;
+
+	nvme_init_get_log_smart(&cmd, nsid, smart_log);
+
+	return nvme_get_log(hdl, &cmd, rae, NVME_LOG_PAGE_PDU_SIZE, NULL);
+}
+
+static inline int
+nvme_set_features(struct nvme_transport_handle *hdl, __u32 nsid, __u8 fid,
+		bool sv, __u32 cdw11, __u32 cdw12, __u32 cdw13, __u8 uidx,
+		__u32 cdw15, void *data, __u32 len, __u32 *result)
+{
+	struct nvme_passthru_cmd cmd;
+
+	nvme_init_set_features(&cmd, fid, sv);
+	cmd.nsid = nsid;
+	cmd.cdw11 = cdw11;
+	cmd.cdw12 = cdw12;
+	cmd.cdw13 = cdw13;
+	cmd.cdw14 = NVME_FIELD_ENCODE(uidx,
+				      NVME_IDENTIFY_CDW14_UUID_SHIFT,
+				      NVME_IDENTIFY_CDW14_UUID_MASK);
+	cmd.cdw15 = cdw15;
+
+	return nvme_submit_admin_passthru(hdl, &cmd, result);
+}
+
+static inline int
+nvme_set_features_simple(struct nvme_transport_handle *hdl,
+		__u32 nsid, __u8 fid, bool sv, __u32 cdw11, __u32 *result)
+{
+	struct nvme_passthru_cmd cmd;
+
+	nvme_init_set_features(&cmd, fid, sv);
+	cmd.nsid = nsid;
+	cmd.cdw11 = cdw11;
+
+	return nvme_submit_admin_passthru(hdl, &cmd, result);
+}
+
+static inline int
+nvme_get_features(struct nvme_transport_handle *hdl, __u8 fid,
+		enum nvme_get_features_sel sel, __u32 *result)
+{
+	struct nvme_passthru_cmd cmd;
+
+	nvme_init_get_features(&cmd, fid, sel);
+
+	return nvme_submit_admin_passthru(hdl, &cmd, result);
+}
 #endif /* _LIBNVME_IOCTL_H */
