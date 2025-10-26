@@ -5583,4 +5583,114 @@ nvme_init_lm_get_features_ctrl_data_queue(struct nvme_passthru_cmd *cmd,
 	cmd->addr = (__u64)(uintptr_t)qfd;
 	cmd->cdw11 = cdqid;
 }
+
+static inline int
+nvme_identify_ctrl(struct nvme_transport_handle *hdl,
+		struct nvme_id_ctrl *id)
+{
+	struct nvme_passthru_cmd cmd;
+
+	nvme_init_identify_ctrl(&cmd, id);
+
+	return nvme_submit_admin_passthru(hdl, &cmd, NULL);
+}
+
+static inline int
+nvme_identify_active_ns_list(struct nvme_transport_handle *hdl,
+		__u32 nsid, struct nvme_ns_list *ns_list)
+{
+	struct nvme_passthru_cmd cmd;
+
+	nvme_init_identify_active_ns_list(&cmd, nsid, ns_list);
+
+	return nvme_submit_admin_passthru(hdl, &cmd, NULL);
+}
+
+static inline int
+nvme_identify_ns(struct nvme_transport_handle *hdl,
+		__u32 nsid, struct nvme_id_ns *ns)
+{
+	struct nvme_passthru_cmd cmd;
+
+	nvme_init_identify_ns(&cmd, nsid, ns);
+
+	return nvme_submit_admin_passthru(hdl, &cmd, NULL);
+}
+
+static inline int
+nvme_identify_csi_ns(struct nvme_transport_handle *hdl, __u32 nsid,
+		enum nvme_csi csi, __u8 uidx, struct nvme_nvm_id_ns *id_ns)
+{
+	struct nvme_passthru_cmd cmd;
+
+	nvme_init_identify_csi_ns(&cmd, nsid, csi, uidx, id_ns);
+
+	return nvme_submit_admin_passthru(hdl, &cmd, NULL);
+}
+
+static inline int
+nvme_identify_uuid_list(struct nvme_transport_handle *hdl,
+		struct nvme_id_uuid_list *uuid_list)
+{
+	struct nvme_passthru_cmd cmd;
+
+	nvme_init_identify_uuid_list(&cmd, uuid_list);
+
+	return nvme_submit_admin_passthru(hdl, &cmd, NULL);
+}
+
+static inline int
+nvme_identify(struct nvme_transport_handle *hdl, __u32 nsid, enum nvme_csi csi,
+		enum nvme_identify_cns cns, void *data, __u32 len)
+{
+	struct nvme_passthru_cmd cmd;
+
+	nvme_init_identify(&cmd, nsid, csi, cns, data, len);
+
+	return nvme_submit_admin_passthru(hdl, &cmd, NULL);
+}
+
+static inline int
+nvme_identify_csi_ns_user_data_format(struct nvme_transport_handle *hdl,
+		enum nvme_csi csi, __u16 fidx, __u8 uidx, void *data)
+{
+	struct nvme_passthru_cmd cmd;
+
+	nvme_init_identify_csi_ns_user_data_format(&cmd, csi, fidx, uidx, data);
+
+	return nvme_submit_admin_passthru(hdl, &cmd, NULL);
+}
+
+static inline int
+nvme_identify_ns_granularity(struct nvme_transport_handle *hdl,
+		struct nvme_id_ns_granularity_list *gr_list)
+{
+	struct nvme_passthru_cmd cmd;
+
+	nvme_init_identify_ns_granularity(&cmd, gr_list);
+
+	return nvme_submit_admin_passthru(hdl, &cmd, NULL);
+}
+
+static inline int
+nvme_identify_ns_descs_list(struct nvme_transport_handle *hdl,
+		__u32 nsid, struct nvme_ns_id_desc *descs)
+{
+	struct nvme_passthru_cmd cmd;
+
+	nvme_init_identify_ns_descs_list(&cmd, nsid, descs);
+
+	return nvme_submit_admin_passthru(hdl, &cmd, NULL);
+}
+
+static inline int
+nvme_zns_identify_ns(struct nvme_transport_handle *hdl,
+		__u32 nsid, struct nvme_zns_id_ns *data)
+{
+	struct nvme_passthru_cmd cmd;
+
+	nvme_init_zns_identify_ns(&cmd, nsid, data);
+
+	return nvme_submit_admin_passthru(hdl, &cmd, NULL);
+}
 #endif /* _LIBNVME_IOCTL_H */
