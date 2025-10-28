@@ -7185,6 +7185,43 @@ nvme_set_features_simple(struct nvme_transport_handle *hdl,
 /**
  * nvme_get_features() - Submit a Get Features command
  * @hdl:	Transport handle for the controller.
+ * @nsid:	Namespace ID, if applicable
+ * @fid:	Feature identifier, see &enum nvme_features_id
+ * @sel:	Select which type of attribute to return,
+ *		see &enum nvme_get_features_sel
+ * @cdw11:	Feature specific command dword11 field
+ * @uidx:	UUID Index for differentiating vendor specific encoding
+ * @data:	User address of feature data, if applicable
+ * @len:	Length of feature data, if applicable, in bytes
+ * @result:	The command completion result (CQE dword0) on success.
+ *
+ * Return: 0 on success, the NVMe command status on error, or a negative
+ * errno otherwise.
+ */
+static inline int
+nvme_get_features(struct nvme_transport_handle *hdl, __u32 nsid,
+		__u8 fid, enum nvme_get_features_sel sel,
+		__u32 cdw11, __u8 uidx, void *data,
+		__u32 len, __u32 *result)
+{
+	struct nvme_passthru_cmd cmd;
+
+	nvme_init_get_features(&cmd, fid, sel);
+
+	cmd.nsid = nsid;
+	cmd.cdw11 = cdw11;
+	cmd.cdw14 = NVME_FIELD_ENCODE(uidx,
+			NVME_GET_FEATURES_CDW14_UUID_SHIFT,
+			NVME_GET_FEATURES_CDW14_UUID_MASK);
+	cmd.addr = (__u64)(uintptr_t)data;
+	cmd.data_len = len;
+
+	return nvme_submit_admin_passthru(hdl, &cmd, result);
+}
+
+/**
+ * nvme_get_features_simple() - Submit a simple Get Features command
+ * @hdl:	Transport handle for the controller.
  * @fid:	Feature Identifier (FID) to be retrieved.
  * @sel:	Select (SEL), specifying which feature value
  *		to return (&struct nvme_get_features_sel).
@@ -7197,7 +7234,7 @@ nvme_set_features_simple(struct nvme_transport_handle *hdl,
  * errno otherwise.
  */
 static inline int
-nvme_get_features(struct nvme_transport_handle *hdl, __u8 fid,
+nvme_get_features_simple(struct nvme_transport_handle *hdl, __u8 fid,
 		enum nvme_get_features_sel sel, __u32 *result)
 {
 	struct nvme_passthru_cmd cmd;
