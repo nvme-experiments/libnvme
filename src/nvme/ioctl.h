@@ -7147,6 +7147,8 @@ nvme_set_features(struct nvme_transport_handle *hdl, __u32 nsid, __u8 fid,
 				      NVME_IDENTIFY_CDW14_UUID_SHIFT,
 				      NVME_IDENTIFY_CDW14_UUID_MASK);
 	cmd.cdw15 = cdw15;
+	cmd.addr = (__u64)(uintptr_t)data;
+	cmd.data_len = len;
 
 	return nvme_submit_admin_passthru(hdl, &cmd, result);
 }
