@@ -4819,6 +4819,7 @@ nvme_init_copy(struct nvme_passthru_cmd *cmd, __u32 nsid, __u64 sdlba,
 		break;
 	default:
 		data_len = nr * sizeof(struct nvme_copy_range);
+		break;
 	}
 
 	nvme_init_io(cmd, nvme_cmd_copy, nsid, sdlba, cpydsc,
