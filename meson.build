@@ -20,6 +20,8 @@ project(
     ]
 )
 
+fs = import('fs')
+
 vstr = meson.project_version().split('-rc')[0]
 vstr = vstr.split('.dev')[0]
 vid = vstr.split('.')
@@ -272,9 +274,10 @@ add_project_arguments(
     ],
     language : 'c',
 )
-incdir = include_directories(['.', 'ccan', 'src'])
+incdir = include_directories(['.', 'ccan', 'src', 'src/nvme'])
 
 ################################################################################
+subdir('tools')
 subdir('internal')
 subdir('ccan')
 subdir('src')
