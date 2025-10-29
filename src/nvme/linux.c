@@ -192,7 +192,8 @@ int nvme_fw_download_seq(struct nvme_transport_handle *hdl, __u32 size,
 	int err = 0;
 
 	while (size > 0) {
-		if (nvme_init_fw_download(&cmd, data, MIN(xfer, size), offset))
+		err = nvme_init_fw_download(&cmd, data, MIN(xfer, size), offset);
+		if (err)
 			break;
 		err = nvme_submit_admin_passthru(hdl, &cmd, NULL);
 		if (err)
